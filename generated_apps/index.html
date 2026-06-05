@@ -86,6 +86,9 @@
                         let masteredCount = 0;
                         if (data.masteredWords) {
                             masteredCount = Object.values(data.masteredWords).filter(v => v === true).length;
+                        } else {
+                            // フォールバック: masteredWords.1-1 のようなドット表記のフラットなキーを検出して数える
+                            masteredCount = Object.keys(data).filter(key => key.startsWith('masteredWords.') && data[key] === true).length;
                         }
                         
                         const totalCount = app.word_count || 0;
@@ -134,6 +137,10 @@
                         
                         if (data.masteredWords) {
                             const count = Object.values(data.masteredWords).filter(v => v === true).length;
+                            totalMasteredWords += count;
+                        } else {
+                            // フォールバック: masteredWords.1-1 のようなドット表記のフラットなキーを検出して数える
+                            const count = Object.keys(data).filter(key => key.startsWith('masteredWords.') && data[key] === true).length;
                             totalMasteredWords += count;
                         }
                         

@@ -1227,8 +1227,12 @@
                 const docRef = doc(db, "leap_users", window.currentUser.uid, "progress", appId);
                 window.localMasteredWords[wordId] = makeMastered;
                 
-                const updateData = {};
-                updateData[`masteredWords.${wordId}`] = makeMastered; // ドット表記でネストされたオブジェクトを部分更新
+                // ネストされたオブジェクトを直接渡す。merge: true により、Firestoreが既存のキーとマージしてくれます。
+                const updateData = {
+                    masteredWords: {
+                        [wordId]: makeMastered
+                    }
+                };
                 
                 setDoc(docRef, updateData, { merge: true })
                 .then(() => {
