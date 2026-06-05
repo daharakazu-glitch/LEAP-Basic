@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEAP Basic学習アプリ (P5 W7)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Tinos:wght@700&display=swap');
+
+        body {
+            background-color: #007BFF;
+            /* ビビットなブルー */
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+
+        /* 英語フォントをTimes New Romanに設定 */
+        .font-english {
+            font-family: 'Tinos', 'Times New Roman', serif;
+            font-weight: 700;
+            font-size: 1.25rem;
+            /* 20px */
+            line-height: 1.75rem;
+            /* 28px */
+        }
+
+        .answer-span {
+            color: #DC2626;
+            /* 赤色 */
+            font-weight: 700;
+            display: none;
+        }
+
+        .underline-span {
+            text-decoration: underline;
+            text-underline-offset: 4px;
+            display: inline;
+        }
+
+        .show-answer .answer-span {
+            display: inline;
+        }
+
+        .show-answer .underline-span {
+            display: none;
+        }
+
+        .explanation {
+            display: none;
+            white-space: pre-wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        /* モバイルでのボタン調整 */
+        @media (max-width: 640px) {
+            #control-panel {
+                padding: 0.5rem;
+            }
+
+            #control-panel button {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="text-gray-800 bg-blue-500 m-0 p-0" style="height: 100vh; height: 100dvh; overflow: hidden;">
+
+    <!-- Wrapper that perfectly fills the screen and handles scrolling -->
+    <div id="main-scroll-wrapper" style="height: 100%; width: 100%; overflow-y: auto; display: flex; flex-direction: column; position: relative;">
+        
+        <div id="app-container" class="container mx-auto p-4 md:p-8 max-w-4xl flex-grow flex flex-col">
+            <header class="flex-shrink-0 text-center mb-4 bg-blue-500 p-4 rounded-xl shadow-lg">
+                <h1 class="text-2xl md:text-3xl font-bold text-white">LEAP Basic学習アプリ</h1>
+                <h2 id="app-subtitle" class="text-xl md:text-2xl font-bold text-white">Part 1 Week 1 (No.1-42)</h2>
+            </header>
+
+            <main class="flex-grow bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg mb-2">
+                <div class="flex justify-end mb-6">
+                    <button id="start-quiz-btn"
+                        class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform transform hover:scale-105">
+                        ランダムテスト
+                    </button>
+                </div>
+
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h3 class="font-bold text-lg mb-2">選択した問題でPDFを作成</h3>
+                    <p class="text-gray-600 mb-4">学習したい問題のチェックボックスを選択してから、下のボタンを押してください。</p>
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="select-all-checkbox"
+                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <label for="select-all-checkbox" class="ml-2 block text-sm text-gray-900">すべて選択 / 解除</label>
+                    </div>
+                    <div class="flex justify-center">
+                        <button id="open-pdf-modal-btn"
+                            class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform transform hover:scale-105">PDFダウンロードの種類を選択</button>
+                    </div>
+                </div>
+
+                <div id="sentence-list" class="space-y-6">
+                    <!-- Sentences will be populated by JS -->
+                </div>
+            </main>
+        </div>
+
+
+    </div>
+
+    <!-- Message/Score Modal -->
+    <div id="message-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div id="message-content" class="bg-white p-8 rounded-lg shadow-xl text-center">
+            <!-- Message content will be populated by JS -->
+        </div>
+    </div>
+    <!-- Quiz Modal -->
+    <div id="quiz-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-40 p-4">
+        <div class="bg-white w-full max-w-2xl p-8 rounded-2xl shadow-2xl relative">
+            <button id="close-quiz-btn"
+                class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-3xl font-bold">&times;</button>
+            <div id="quiz-content">
+                <!-- Quiz content will be populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Download Modal -->
+    <div id="pdf-modal"
+        class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+        <div class="relative mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">ダウンロードするPDFの種類を選択</h3>
+                <div class="mt-4 px-7 py-3 space-y-3">
+                    <button id="download-list-btn" class="btn btn-primary w-full justify-start">1. 完全な単語のリスト</button>
+                    <button id="download-en-quiz-btn" class="btn btn-primary w-full justify-start">2.
+                        英語の単語を解答する問題</button>
+                    <button id="download-ja-quiz-btn" class="btn btn-primary w-full justify-start">3.
+                        単語の日本語訳を解答する問題</button>
+                    <button id="download-mixed-quiz-btn" class="btn btn-primary w-full justify-start">4.
+                        英語と日本語が混在した問題</button>
+                    <button id="download-sentence-quiz-btn" class="btn btn-primary w-full justify-start">5.
+                        例文の穴埋め問題</button>
+                    <button id="download-sentence-mixed-quiz-btn" class="btn btn-primary w-full justify-start">6.
+                        例文の混合問題 (穴埋め/和訳)</button>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="close-modal-btn" class="btn btn-secondary w-full">キャンセル</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- App State ---
+        const chapterData = [
+    {
+        "id": "1503",
+        "answer": "enormous",
+        "explanation": "[形] 莫大な，巨大な",
+        "en": "an enormous amount of time",
+        "ja": "莫大な（量の）時間",
+        "target_word": "enormous"
+    },
+    {
+        "id": "1504",
+        "answer": "numerous",
+        "explanation": "[形] 多くの",
+        "en": "receive numerous complaints",
+        "ja": "多くの苦情を受ける",
+        "target_word": "numerous"
+    },
+    {
+        "id": "1505",
+        "answer": "broad",
+        "explanation": "[形] 幅広い",
+        "en": "have broad shoulders",
+        "ja": "肩幅が広い",
+        "target_word": "broad"
+    },
+    {
+        "id": "1506",
+        "answer": "vast",
+        "explanation": "[形] （地域，土地などが）広大な",
+        "en": "a vast land",
+        "ja": "広大な土地",
+        "target_word": "vast"
+    },
+    {
+        "id": "1507",
+        "answer": "huge",
+        "explanation": "[形] 巨大な",
+        "en": "a huge elephant",
+        "ja": "巨大な象",
+        "target_word": "huge"
+    },
+    {
+        "id": "1508",
+        "answer": "tiny",
+        "explanation": "[形] とても小さな",
+        "en": "a tiny hole in the wall",
+        "ja": "壁に空いたとても小さな穴",
+        "target_word": "tiny"
+    },
+    {
+        "id": "1509",
+        "answer": "global",
+        "explanation": "[形] （全）世界的な，地球規模の",
+        "en": "global warming",
+        "ja": "地球温暖化",
+        "target_word": "global"
+    },
+    {
+        "id": "1510",
+        "answer": "universal",
+        "explanation": "[形] 普遍的な",
+        "en": "“Time is money” is a universal truth.",
+        "ja": "「時は金なり」は普遍的な真理だ．",
+        "target_word": "universal"
+    },
+    {
+        "id": "1511",
+        "answer": "maximum",
+        "explanation": "[名] 最大限",
+        "en": "reach a maximum of 45℃",
+        "ja": "最高で（摂氏）45度に達する",
+        "target_word": "maximum"
+    },
+    {
+        "id": "1512-1",
+        "answer": "sort",
+        "explanation": "[名] ①種（類）　②（副詞的に）（− of）多少",
+        "en": "What sort of music do you like?",
+        "ja": "どのような（種類の）音楽が好きなの．",
+        "target_word": "sort"
+    },
+    {
+        "id": "1512-2",
+        "answer": "sort",
+        "explanation": "[名] ①種（類）　②（副詞的に）（− of）多少",
+        "en": "I'm sort of tired today.",
+        "ja": "今日はちょっと疲れている．",
+        "target_word": "sort"
+    },
+    {
+        "id": "1513-1",
+        "answer": "content",
+        "explanation": "[名] ①中身，内容　[形] ②（with ～）（～に）満足して",
+        "en": "the contents of her bag",
+        "ja": "彼女のかばんの中身",
+        "target_word": "content"
+    },
+    {
+        "id": "1513-2",
+        "answer": "content",
+        "explanation": "[名] ①中身，内容　[形] ②（with ～）（～に）満足して",
+        "en": "be content with my job",
+        "ja": "仕事に満足している",
+        "target_word": "content"
+    },
+    {
+        "id": "1514-1",
+        "answer": "alternative",
+        "explanation": "[名] ①（to ～）（～の）代わりのもの　[形] ②代わりの",
+        "en": "an alternative to plastic",
+        "ja": "プラスチックの代わりになるもの",
+        "target_word": "alternative"
+    },
+    {
+        "id": "1514-2",
+        "answer": "alternative",
+        "explanation": "[名] ①（to ～）（～の）代わりのもの　[形] ②代わりの",
+        "en": "alternative energy sources",
+        "ja": "代替エネルギー源",
+        "target_word": "alternative"
+    },
+    {
+        "id": "1515",
+        "answer": "contrast",
+        "explanation": "[名] 対比",
+        "en": "the contrast between the two",
+        "ja": "その両者の対比",
+        "target_word": "contrast"
+    },
+    {
+        "id": "1516",
+        "answer": "resemble",
+        "explanation": "[他] ～に似ている",
+        "en": "resemble my father in every way",
+        "ja": "あらゆる点で父親に似ている",
+        "target_word": "resemble"
+    },
+    {
+        "id": "1517",
+        "answer": "abstract",
+        "explanation": "[形] 抽象的な",
+        "en": "an abstract work of art",
+        "ja": "抽象的な芸術作品",
+        "target_word": "abstract"
+    },
+    {
+        "id": "1518-1",
+        "answer": "annual",
+        "explanation": "[形] ①年に1度の　②1年間の",
+        "en": "an annual event",
+        "ja": "毎年恒例の（年に1度の）行事",
+        "target_word": "annual"
+    },
+    {
+        "id": "1518-2",
+        "answer": "annual",
+        "explanation": "[形] ①年に1度の　②1年間の",
+        "en": "an annual income",
+        "ja": "年収",
+        "target_word": "annual"
+    },
+    {
+        "id": "1519",
+        "answer": "current",
+        "explanation": "[形] 最新の，今の",
+        "en": "the current energy crisis",
+        "ja": "現在のエネルギー危機",
+        "target_word": "current"
+    },
+    {
+        "id": "1520-1",
+        "answer": "contemporary",
+        "explanation": "[形] ①現代の　[名] ②同時代の人",
+        "en": "contemporary music",
+        "ja": "現代音楽",
+        "target_word": "contemporary"
+    },
+    {
+        "id": "1520-2",
+        "answer": "contemporary",
+        "explanation": "[形] ①現代の　[名] ②同時代の人",
+        "en": "Shakespeare's contemporaries",
+        "ja": "シェイクスピアと同時代の人々",
+        "target_word": "contemporary"
+    },
+    {
+        "id": "1521",
+        "answer": "temporary",
+        "explanation": "[形] 一時的な",
+        "en": "a temporary job",
+        "ja": "一時的な仕事",
+        "target_word": "temporary"
+    },
+    {
+        "id": "1522",
+        "answer": "permanent",
+        "explanation": "[形] 永久的な",
+        "en": "permanent peace",
+        "ja": "永続的な平和",
+        "target_word": "permanent"
+    },
+    {
+        "id": "1523",
+        "answer": "brief",
+        "explanation": "[形] 手短な，簡潔な",
+        "en": "have a brief conversation with her",
+        "ja": "彼女と少し話（手短な会話）をする",
+        "target_word": "brief"
+    },
+    {
+        "id": "1524",
+        "answer": "rapid",
+        "explanation": "[形] 急速な",
+        "en": "a rapid river",
+        "ja": "急流（流れが急速な川）",
+        "target_word": "rapid"
+    },
+    {
+        "id": "1525-1",
+        "answer": "initial",
+        "explanation": "[形]①最初の　[名] ②頭文字，イニシャル",
+        "en": "the initial stages of the disease",
+        "ja": "その病気の初期（最初の）段階",
+        "target_word": "initial"
+    },
+    {
+        "id": "1525-2",
+        "answer": "initial",
+        "explanation": "[形]①最初の　[名] ②頭文字，イニシャル",
+        "en": "Her initials are M.N.",
+        "ja": "彼女のイニシャルはM.N.です．",
+        "target_word": "initial"
+    },
+    {
+        "id": "1526",
+        "answer": "immediately",
+        "explanation": "[副] すぐに",
+        "en": "immediately after breakfast",
+        "ja": "朝食後すぐに",
+        "target_word": "immediately"
+    },
+    {
+        "id": "1527",
+        "answer": "meanwhile",
+        "explanation": "[副] その間",
+        "en": "My wife was shopping.  Meanwhile, I was waiting in the car.",
+        "ja": "妻は買い物をしていた．その間，私は車で待っていた．",
+        "target_word": "meanwhile"
+    },
+    {
+        "id": "1528",
+        "answer": "deadline",
+        "explanation": "[名] （for ～）（～の）締め切り〈可算〉　",
+        "en": "meet the deadline for entries",
+        "ja": "登録の締め切りに間に合う",
+        "target_word": "deadline"
+    },
+    {
+        "id": "1529",
+        "answer": "session",
+        "explanation": "[名] （活動の）期間，（議会などの）会期",
+        "en": "have a Q&A session",
+        "ja": "質疑応答の時間をとる",
+        "target_word": "session"
+    },
+    {
+        "id": "1530",
+        "answer": "era",
+        "explanation": "[名] 時代",
+        "en": "the beginning of a new era",
+        "ja": "新たな時代の始まり",
+        "target_word": "era"
+    },
+    {
+        "id": "1531",
+        "answer": "decade",
+        "explanation": "[名] 10年",
+        "en": "for decades to follow",
+        "ja": "今後，数十年の間",
+        "target_word": "decade"
+    },
+    {
+        "id": "1532-1",
+        "answer": "former",
+        "explanation": "[名] ①（the −）前者　[形] ②元の，前の，旧",
+        "en": "the former and the latter",
+        "ja": "前者と後者",
+        "target_word": "former"
+    },
+    {
+        "id": "1532-2",
+        "answer": "former",
+        "explanation": "[名] ①（the −）前者　[形] ②元の，前の，旧",
+        "en": "a former principal",
+        "ja": "前任の校長（の１人）",
+        "target_word": "former"
+    },
+    {
+        "id": "1533",
+        "answer": "postpone",
+        "explanation": "[他] ～を延期する",
+        "en": "postpone the meeting until tomorrow",
+        "ja": "明日まで会議を延期する",
+        "target_word": "postpone"
+    },
+    {
+        "id": "1534",
+        "answer": "region",
+        "explanation": "[名] 地域",
+        "en": "a mountainous region",
+        "ja": "山岳地域",
+        "target_word": "region"
+    },
+    {
+        "id": "1535",
+        "answer": "district",
+        "explanation": "[名] 地区",
+        "en": "an election district",
+        "ja": "選挙区",
+        "target_word": "district"
+    },
+    {
+        "id": "1536",
+        "answer": "border",
+        "explanation": "[名] 国境（地帯），境界",
+        "en": "cross the border",
+        "ja": "国境を越える",
+        "target_word": "border"
+    },
+    {
+        "id": "1537",
+        "answer": "distant",
+        "explanation": "[形] 遠い",
+        "en": "a distant island",
+        "ja": "遠い島",
+        "target_word": "distant"
+    }
+];
+
+        let activeSentenceElement = null;
+        let selectedSentences = new Set();
+
+        // --- DOM Elements ---
+        const sentenceList = document.getElementById('sentence-list');
+
+        const startQuizBtn = document.getElementById('start-quiz-btn');
+        const messageModal = document.getElementById('message-modal');
+        const messageContent = document.getElementById('message-content');
+        const quizModal = document.getElementById('quiz-modal');
+        const closeQuizBtn = document.getElementById('close-quiz-btn');
+        const quizContent = document.getElementById('quiz-content');
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const pdfModal = document.getElementById('pdf-modal');
+        const openPdfModalBtn = document.getElementById('open-pdf-modal-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        // --- Voice Synthesis Setup ---
+        // Initialize speech synthesis voices list on page load
+        if (typeof speechSynthesis !== 'undefined') {
+            speechSynthesis.getVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = () => {
+                    speechSynthesis.getVoices();
+                };
+            }
+        }
+
+        function getBestEnglishVoice(voices) {
+            // Filter out novelty/weird voices (especially on macOS) that sound terrible,
+            // and strictly exclude 'siri' to avoid the double-playback bug on macOS Safari.
+            const excludedVoices = [
+                'albert', 'bad news', 'bells', 'boing', 'bubbles', 'cellos', 
+                'deranged', 'good news', 'hysterical', 'pipe organ', 'trinoids', 
+                'whisper', 'zarvox', 'fred', 'juniper', 'ralph', 'kathy', 'siri'
+            ];
+            
+            const englishVoices = voices.filter(v => {
+                const lang = v.lang.toLowerCase();
+                const name = v.name.toLowerCase();
+                return lang.startsWith('en') && !excludedVoices.some(ex => name.includes(ex));
+            });
+
+            if (englishVoices.length === 0) {
+                // Fallback to any voice starting with 'en' if all were excluded
+                return voices.find(v => v.lang.toLowerCase().startsWith('en')) || null;
+            }
+
+            const isGoogle = v => v.name.toLowerCase().includes('google');
+            const isSamantha = v => v.name.toLowerCase().includes('samantha');
+            const isDaniel = v => v.name.toLowerCase().includes('daniel');
+            const isPremium = v => v.name.toLowerCase().includes('premium') || v.name.toLowerCase().includes('enhanced') || v.name.toLowerCase().includes('natural');
+            const isUS = v => v.lang.toLowerCase() === 'en-us';
+            const isGB = v => v.lang.toLowerCase() === 'en-gb';
+
+            // Preferences:
+            // 1. Google US English
+            let voice = englishVoices.find(v => isUS(v) && isGoogle(v));
+            if (voice) return voice;
+
+            // 2. Google UK English
+            voice = englishVoices.find(v => isGB(v) && isGoogle(v));
+            if (voice) return voice;
+
+            // 3. Other Google English voices
+            voice = englishVoices.find(isGoogle);
+            if (voice) return voice;
+
+            // 4. Samantha (Standard stable macOS US voice)
+            voice = englishVoices.find(isSamantha);
+            if (voice) return voice;
+
+            // 5. Daniel (Standard stable macOS GB voice)
+            voice = englishVoices.find(isDaniel);
+            if (voice) return voice;
+
+            // 6. US Premium/Enhanced
+            voice = englishVoices.find(v => isUS(v) && isPremium(v));
+            if (voice) return voice;
+
+            // 7. Other Premium/Enhanced
+            voice = englishVoices.find(isPremium);
+            if (voice) return voice;
+
+            // 8. Standard US Voice
+            voice = englishVoices.find(v => isUS(v));
+            if (voice) return voice;
+
+            // 9. Standard GB Voice
+            voice = englishVoices.find(v => isGB(v));
+            if (voice) return voice;
+
+            // 10. Any other English voice
+            return englishVoices[0];
+        }
+
+        // --- Core Functions ---
+        function findAnswerFormInSentence(enSentence, answer) {
+            const cleanAnswer = answer.toLowerCase().replace(/[.,!?]$/, '');
+            const words = enSentence.split(/\s+/);
+            for (let word of words) {
+                const cleanWord = word.toLowerCase().replace(/[.,!?]$/, '');
+                if (cleanWord === cleanAnswer) return word.replace(/[.,!?]$/, '');
+            }
+            return answer;
+        }
+
+        function formatEnglishSentence(enSentence, answer) {
+            const blank = '__________';
+            const actualWord = findAnswerFormInSentence(enSentence, answer);
+            const regex = new RegExp(`\\b${actualWord}\\b`, 'i');
+
+            if (regex.test(enSentence)) {
+                return enSentence.replace(regex, `<span class="answer-span">${actualWord}</span><span class="underline-span">${blank}</span>`);
+            }
+            return enSentence;
+        }
+
+        function renderChapter() {
+            sentenceList.innerHTML = '';
+            chapterData.forEach(item => {
+                const sentenceDiv = document.createElement('div');
+                sentenceDiv.className = 'sentence-item p-4 border border-gray-200 rounded-lg bg-white transition-shadow duration-300 hover:shadow-md';
+                sentenceDiv.dataset.id = item.id;
+                sentenceDiv.dataset.fullSentence = item.en;
+
+                const englishSentenceHtml = formatEnglishSentence(item);
+
+                sentenceDiv.innerHTML = `
+        <div class="flex items-start space-x-4">
+            <input type="checkbox" class="sentence-checkbox mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-id="${item.id}">
+            <span class="text-sm font-bold text-gray-400 w-16">${item.id}</span>
+            <div class="flex-1 cursor-pointer">
+                ${item.ja ? `<p class="mb-2 text-gray-700">${item.ja}</p>` : ""}
+                <p class="font-english">${englishSentenceHtml}</p>
+                
+                <div class="action-buttons mt-4 hidden flex-wrap gap-2">
+                    <button class="toggle-answer-btn-local bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">表示/非表示</button>
+                    <button class="play-sound-btn-local bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">音声再生</button>
+                    <button class="play-slow-btn-local bg-teal-500 hover:bg-teal-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">ゆっくり</button>
+                    <button class="record-btn-local bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">録音評価</button>
+                    <button class="toggle-explanation-btn-local bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">語の意味</button>
+                </div>
+
+                <div class="explanation mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 text-gray-700 rounded-r-lg" style="display: none;">
+                ${item.explanation}
+                </div>
+            </div>
+        </div>
+        `;
+                sentenceList.appendChild(sentenceDiv);
+            });
+
+            document.querySelectorAll('.sentence-item .flex-1').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if(e.target.tagName === 'BUTTON') return;
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    if (activeSentenceElement && activeSentenceElement !== sentenceWrapper) {
+                        activeSentenceElement.classList.remove('ring-2', 'ring-blue-400', 'shadow-xl');
+                        activeSentenceElement.querySelector('.action-buttons').classList.add('hidden');
+                        activeSentenceElement.querySelector('.action-buttons').classList.remove('flex');
+                    }
+                    activeSentenceElement = sentenceWrapper;
+                    activeSentenceElement.classList.add('ring-2', 'ring-blue-400', 'shadow-xl');
+                    activeSentenceElement.querySelector('.action-buttons').classList.remove('hidden');
+                    activeSentenceElement.querySelector('.action-buttons').classList.add('flex');
+                });
+                
+                // Wire up local buttons
+                item.querySelector('.toggle-answer-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    sentenceWrapper.classList.toggle('show-answer');
+                });
+                
+                item.querySelector('.play-sound-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playSound(1.0);
+                });
+                
+                item.querySelector('.play-slow-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playSound(0.8);
+                });
+                
+                item.querySelector('.record-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleRecording();
+                });
+                
+                item.querySelector('.toggle-explanation-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    const exp = sentenceWrapper.querySelector('.explanation');
+                    if (exp) exp.style.display = exp.style.display === 'block' ? 'none' : 'block';
+                });
+            });
+
+            document.querySelectorAll('.sentence-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (e.target.checked) selectedSentences.add(e.target.dataset.id);
+                    else selectedSentences.delete(e.target.dataset.id);
+                });
+            });
+
+            if (sentenceList.firstChild) sentenceList.firstChild.querySelector('.flex-1').click();
+        }
+
+        function showMessage(htmlContent, duration = null) {
+            messageContent.innerHTML = htmlContent;
+            messageModal.classList.remove('hidden');
+            if (duration) setTimeout(() => messageModal.classList.add('hidden'), duration);
+        }
+
+        function playSound(speed = 1.0) {
+            if (!activeSentenceElement) return;
+            const text = activeSentenceElement.dataset.fullSentence;
+            if (!text) return;
+
+            // Cancel any ongoing speech synthesis immediately
+            try {
+                speechSynthesis.cancel();
+            } catch (e) {}
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = speed;
+
+            // Dynamically select the best English voice from loaded voices
+            const voices = speechSynthesis.getVoices();
+            const bestVoice = getBestEnglishVoice(voices);
+            if (bestVoice) {
+                utterance.voice = bestVoice;
+                utterance.lang = bestVoice.lang;
+            } else {
+                console.warn("No custom English voice found, using browser default.");
+            }
+
+            utterance.onerror = (e) => {
+                console.error("SpeechSynthesis error:", e.error);
+            };
+
+            speechSynthesis.speak(utterance);
+        }
+
+        function handleRecording() {
+            if (!activeSentenceElement) return;
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showMessage('<p>お使いのブラウザは音声認識に対応していません。</p>', 3000);
+                return;
+            }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.onstart = () => showMessage('<p class="text-2xl">マイクに向かって話してください...</p><div class="animate-pulse text-red-500 text-4xl mt-4">●</div>');
+            recognition.onresult = (event) => evaluatePronunciation(event.results[0][0].transcript);
+            recognition.onerror = () => showMessage('<p>認識エラーが発生しました。</p>', 2000);
+            recognition.start();
+        }
+
+        function evaluatePronunciation(transcript) {
+            const original = activeSentenceElement.dataset.fullSentence.toLowerCase().replace(/[^\w\s]/g, '');
+            const user = transcript.toLowerCase().replace(/[^\w\s]/g, '');
+            const score = Math.min(100, Math.floor((user.split(' ').filter(w => original.includes(w)).length / original.split(' ').length) * 100) + 15);
+
+            if(window.saveLeapScore) window.saveLeapScore('pronunciationScore_' + activeSentenceElement.dataset.id, score);
+            showMessage(`
+        <h3 class="text-2xl font-bold mb-4">評価結果</h3>
+        <p class="text-7xl font-bold text-blue-600 mb-4">${score}<span class="text-2xl">点</span></p>
+        <p class="text-gray-600 mb-2"><strong>認識結果:</strong> ${transcript}</p>
+        <button onclick="document.getElementById('message-modal').classList.add('hidden')" class="mt-6 bg-blue-500 text-white py-2 px-6 rounded-lg">閉じる</button>
+    `);
+        }
+
+        function startQuiz() {
+            const questions = [...chapterData].sort(() => 0.5 - Math.random()).slice(0, 10);
+            let currentIdx = 0, score = 0;
+
+            function extractBlankWord(item) {
+                const formatted = formatEnglishSentence(item);
+                const match = formatted.match(/<span class="answer-span">([\s\S]*?)<\/span>/);
+                return match ? match[1].trim() : item.answer;
+            }
+
+            function nextQuestion() {
+                if (currentIdx >= questions.length) {
+                    if(window.saveLeapScore) window.saveLeapScore('quizScore', Math.round(score / questions.length * 100));
+                    quizContent.innerHTML = `<h3 class="text-3xl font-bold mb-4">結果: ${score}/${questions.length}</h3><p class="text-6xl text-purple-600 font-bold">${Math.round(score / questions.length * 100)}点</p>`;
+                    return;
+                }
+                const q = questions[currentIdx];
+                const correctWord = extractBlankWord(q);
+                
+                const formattedQ = formatEnglishSentence(q);
+                let displaySentence = formattedQ.replace(/<span class="answer-span">[\s\S]*?<\/span><span class="underline-span">__________<\/span>/g, '__________');
+                if (displaySentence === q.en && q.en) {
+                    displaySentence = q.en;
+                } else if (!q.en) {
+                    displaySentence = "(例文なし)";
+                }
+
+                const allOtherWords = chapterData.filter(d => d.id !== q.id).map(d => extractBlankWord(d));
+                const uniqueOtherWords = [...new Set(allOtherWords)].filter(w => w !== correctWord);
+                const distractors = uniqueOtherWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+                
+                const options = [correctWord, ...distractors].sort(() => 0.5 - Math.random());
+
+                quizContent.innerHTML = `
+            <p class="mb-2 text-gray-500">問題 ${currentIdx + 1}/10</p>
+            <p class="text-lg font-bold mb-2 text-gray-700">${q.ja}</p>
+            <p class="text-xl font-bold mb-6 font-english text-blue-800">${displaySentence}</p>
+            <div class="grid grid-cols-1 gap-3">
+                ${options.map(opt => `<button class="quiz-opt p-3 border-2 border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 font-english transition-colors">${opt}</button>`).join('')}
+            </div>
+        `;
+                document.querySelectorAll('.quiz-opt').forEach(btn => {
+                    btn.onclick = () => {
+                        if (btn.innerText === correctWord) { btn.classList.add('bg-green-200', 'border-green-400'); score++; }
+                        else { btn.classList.add('bg-red-200', 'border-red-400'); }
+                        
+                        // Disable buttons
+                        document.querySelectorAll('.quiz-opt').forEach(b => b.disabled = true);
+                        
+                        setTimeout(() => { currentIdx++; nextQuestion(); }, 1000);
+                    };
+                });
+            }
+            quizModal.classList.remove('hidden');
+            nextQuestion();
+        }
+
+        // --- PDF Print Logic ---
+        function openPrintWindow(content, title) {
+            const win = window.open('', '_blank');
+            win.document.write(`<html><head><title>${title}</title><style>body{font-family:sans-serif;padding:40px} .list{column-count:2} li{margin-bottom:10px} .ans{margin-top:50px;border-top:1px solid #000;padding-top:20px}</style></head><body><h1>${title}</h1>${content}</body></html>`);
+            win.document.close();
+            setTimeout(() => { win.focus(); win.print(); }, 500);
+        }
+
+        function getSelected() {
+            return Array.from(selectedSentences).map(id => chapterData.find(d => d.id == id)).sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+        }
+
+        function formatEnglishSentence(item) {
+            const enSentence = item.en;
+            const answer = item.answer;
+            const blank = '__________';
+
+            if (!enSentence) return `<span class="answer-span text-3xl">${answer}</span>`;
+
+            let baseWord = answer.replace(/[～AB]/g, '').replace(/（.*?）/g, '').replace(/\(.*?\)/g, '').trim();
+            let searchWords = [];
+            
+            if (baseWord.length > 0) searchWords.push(baseWord);
+            
+            if (baseWord === 'oneself') {
+                searchWords.push('myself', 'yourself', 'himself', 'herself', 'itself', 'ourselves', 'yourselves', 'themselves');
+            } else {
+                const words = baseWord.split(/\s+/).filter(w => w.length > 0 && /^[a-zA-Z]+$/.test(w));
+                if (words.length > 0) {
+                    let w = words[0].toLowerCase();
+                    searchWords.push(w);
+                    // Add regular forms
+                    searchWords.push(w + 's', w + 'es', w + 'd', w + 'ed', w + 'ing');
+                    if (w.endsWith('e')) searchWords.push(w.slice(0, -1) + 'ing');
+                    if (w.endsWith('y')) searchWords.push(w.slice(0, -1) + 'ies', w.slice(0, -1) + 'ied');
+                    if (w.length > 2) {
+                        const last = w.slice(-1);
+                        searchWords.push(w + last + 'ed', w + last + 'ing');
+                    }
+                    
+                    const irregulars = {
+                        'write': ['wrote', 'written'], 'speak': ['spoke', 'spoken'], 'say': ['said'], 'tell': ['told'],
+                        'see': ['saw', 'seen'], 'hear': ['heard'], 'take': ['took', 'taken'], 'meet': ['met'],
+                        'feel': ['felt'], 'think': ['thought'], 'know': ['knew', 'known'], 'choose': ['chose', 'chosen'],
+                        'leave': ['left'], 'make': ['made'], 'catch': ['caught'], 'find': ['found'], 'buy': ['bought'],
+                        'bring': ['brought'], 'teach': ['taught'], 'understand': ['understood'], 'build': ['built'],
+                        'send': ['sent'], 'spend': ['spent'], 'lose': ['lost'], 'sleep': ['slept'], 'keep': ['kept'],
+                        'do': ['did', 'done'], 'go': ['went', 'gone'], 'come': ['came'], 'run': ['ran'],
+                        'give': ['gave', 'given'], 'get': ['got', 'gotten'], 'forget': ['forgot', 'forgotten'],
+                        'begin': ['began', 'begun'], 'drink': ['drank', 'drunk'], 'swim': ['swam', 'swum'],
+                        'sing': ['sang', 'sung'], 'ring': ['rang', 'rung'], 'drive': ['drove', 'driven'],
+                        'ride': ['rode', 'ridden'], 'eat': ['ate', 'eaten'], 'fall': ['fell', 'fallen'],
+                        'hold': ['held'], 'stand': ['stood'], 'sit': ['sat'], 'win': ['won'], 'pay': ['paid'],
+                        'sell': ['sold'], 'break': ['broke', 'broken'], 'wear': ['wore', 'worn'],
+                        'grow': ['grew', 'grown'], 'fly': ['flew', 'flown'], 'blow': ['blew', 'blown'],
+                        'draw': ['drew', 'drawn'], 'throw': ['threw', 'thrown'], 'hide': ['hid', 'hidden'],
+                        'fight': ['fought'], 'feed': ['fed'], 'strike': ['struck'], 'wake': ['woke', 'woken'],
+                        'bear': ['bore', 'born'], 'beat': ['beat', 'beaten'], 'bind': ['bound'], 'bleed': ['bled'],
+                        'breed': ['bred'], 'tear': ['tore', 'torn'], 'sweep': ['swept'], 'weep': ['wept'],
+                        'bend': ['bent'], 'lend': ['lent'], 'mean': ['meant'], 'lead': ['led'], 'shoot': ['shot']
+                    };
+                    
+                    if (irregulars[w]) searchWords.push(...irregulars[w]);
+                }
+            }
+
+            // We only want to replace the FIRST matching word so we don't mess up multiple instances of the same word unless we use replaceAll.
+            // Actually replaceAll with regex /g is better if the word appears multiple times.
+            for (let actualWord of searchWords) {
+                if (!actualWord) continue;
+                try {
+                    const regex = new RegExp(`\\b${actualWord}\\b`, 'gi');
+                    if (regex.test(enSentence)) {
+                        return enSentence.replace(regex, match => `<span class="answer-span">${match}</span><span class="underline-span">${blank}</span>`);
+                    }
+                } catch (e) { }
+            }
+            
+            // Substring fallback
+            for (let actualWord of searchWords) {
+                if (!actualWord) continue;
+                if (enSentence.toLowerCase().includes(actualWord.toLowerCase())) {
+                    const index = enSentence.toLowerCase().indexOf(actualWord.toLowerCase());
+                    if (index !== -1) {
+                        const originalWord = enSentence.substring(index, index + actualWord.length);
+                        return enSentence.substring(0, index) +
+                            `<span class="answer-span">${originalWord}</span><span class="underline-span">${blank}</span>` +
+                            enSentence.substring(index + actualWord.length);
+                    }
+                }
+            }
+
+            return enSentence;
+        }
+
+        startQuizBtn.onclick = startQuiz;
+        closeQuizBtn.onclick = () => quizModal.classList.add('hidden');
+        openPdfModalBtn.onclick = () => selectedSentences.size ? pdfModal.classList.remove('hidden') : showMessage('問題を選択してください', 2000);
+        closeModalBtn.onclick = () => pdfModal.classList.add('hidden');
+        selectAllCheckbox.onchange = (e) => {
+            document.querySelectorAll('.sentence-checkbox').forEach(cb => {
+                cb.checked = e.target.checked;
+                if (e.target.checked) selectedSentences.add(cb.dataset.id);
+                else selectedSentences.delete(cb.dataset.id);
+            });
+        };
+
+        document.getElementById('download-list-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => `<li><strong>${i.answer}</strong>: ${i.explanation}</li>`).join('')}</ul></div>`;
+            openPrintWindow(html, '重要語句リスト');
+        };
+
+        document.getElementById('download-sentence-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<ol>${items.map(i => {
+                if (!i.en) return `<li>（例文なし: ${i.answer}）</li>`;
+                let formatted = formatEnglishSentence(i);
+                let displaySentence = formatted.replace(/<span class="answer-span">[\s\S]*?<\/span><span class="underline-span">__________<\/span>/g, '__________');
+                if (displaySentence === i.en) displaySentence = i.en;
+                return `<li>${displaySentence}<br><small>${i.ja}</small></li>`;
+            }).join('')}</ol><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer).join(', ')}</p></div>`;
+            openPrintWindow(html, '例文穴埋めテスト');
+        };
+
+
+        document.getElementById('download-en-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => `<li>[日本語]: ${i.ja}<br>[英語]: __________</li>`).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer).join(', ')}</p></div>`;
+            openPrintWindow(html, '英単語テスト');
+        };
+
+        document.getElementById('download-ja-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.explanation.split('\n')[0]).join('<br>')}</p></div>`;
+            openPrintWindow(html, '意味テスト');
+        };
+
+        document.getElementById('download-mixed-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => {
+                return Math.random() > 0.5
+                    ? `<li>[日本語]: ${i.ja}<br>[英語]: __________</li>`
+                    : `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`;
+            }).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer + ' / ' + i.explanation).join('<br>')}</p></div>`;
+            openPrintWindow(html, '英単語・意味混合テスト');
+        };
+
+        document.getElementById('download-sentence-mixed-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<ol>${items.map(i => {
+                if (!i.en) {
+                    return `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`;
+                }
+                if (Math.random() > 0.5) {
+                    let formatted = formatEnglishSentence(i);
+                    let displaySentence = formatted.replace(/<span class="answer-span">[\s\S]*?<\/span><span class="underline-span">__________<\/span>/g, '__________');
+                    if (displaySentence === i.en) displaySentence = i.en;
+                    return `<li>${displaySentence}<br><small>${i.ja}</small></li>`;
+                } else {
+                    return `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`;
+                }
+            }).join('')}</ol><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer + ' / ' + i.explanation.split('\n')[0]).join('<br>')}</p></div>`;
+            openPrintWindow(html, 'ランダム混合テスト');
+        };
+
+        // 初期表示
+        document.addEventListener('DOMContentLoaded', renderChapter);
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCNrvDMnlN_geijgRguQrolnTIZ_rdZwyw",
+            authDomain: "sokudoku-stories-db.firebaseapp.com",
+            projectId: "sokudoku-stories-db",
+            storageBucket: "sokudoku-stories-db.firebasestorage.app",
+            messagingSenderId: "979353290932",
+            appId: "1:979353290932:web:f0c512cfbe64a7afe36fe1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const appId = window.location.pathname.split('/').pop().replace('.html', '');
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.currentUser = user;
+                const docRef = doc(db, "leap_users", user.uid, "progress", appId);
+                setDoc(docRef, {
+                    started: true,
+                    lastAccessed: new Date().toISOString()
+                }, { merge: true }).catch(console.error);
+                
+                setDoc(doc(db, "leap_users", user.uid), {
+                    displayName: user.displayName,
+                    email: user.email,
+                    photoURL: user.photoURL,
+                    lastLogin: new Date().toISOString()
+                }, { merge: true }).catch(e => console.error(e));
+            }
+        });
+
+        window.saveLeapScore = (type, score) => {
+            if (window.currentUser) {
+                const docRef = doc(db, "leap_users", window.currentUser.uid, "progress", appId);
+                const updateData = {};
+                updateData[type] = score;
+                setDoc(docRef, updateData, { merge: true }).catch(console.error);
+            }
+        };
+    </script>
+
+</body>
+
+</html>
