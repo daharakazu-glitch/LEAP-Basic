@@ -13,7 +13,9 @@
         a { display: block; padding: 15px; text-align: center; background-color: white; color: #3b82f6; text-decoration: none; border-radius: 8px; font-weight: bold; border: 1px solid #e2e8f0; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         a:hover { background-color: #3b82f6; color: white; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
         .started { background-color: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+        .mastered { background-color: #f0fdf4; border-color: #bbf7d0; color: #166534; }
         .status-badge { font-size:0.7rem; background:#3b82f6; color:white; padding:3px 8px; border-radius:12px; margin-top:8px; display:inline-block; }
+        .status-badge-mastered { font-size:0.7rem; background:#22c55e; color:white; padding:3px 8px; border-radius:12px; margin-top:8px; display:inline-block; }
         #auth-container { text-align: center; margin-bottom: 20px; }
         .nav-links { text-align: center; margin-top: 40px; }
     </style>
@@ -50,7 +52,7 @@
         const container = document.getElementById('dashboard-container');
         const authDiv = document.getElementById('auth-container');
 
-        function renderGrid(startedApps) {
+        function renderGrid(progressData) {
             container.innerHTML = '';
             const parts = {};
             appsInfo.forEach(app => {
@@ -79,9 +81,15 @@
                     
                     link.innerHTML = `<strong>${app.week}</strong>`;
                     
-                    if (startedApps.has(appId)) {
-                        link.classList.add('started');
-                        link.innerHTML += '<br><span class="status-badge">学習中</span>';
+                    const data = progressData[appId];
+                    if (data) {
+                        if (data.quizScore === 100) {
+                            link.classList.add('mastered');
+                            link.innerHTML += '<br><span class="status-badge-mastered">👑 マスター</span>';
+                        } else if (data.started) {
+                            link.classList.add('started');
+                            link.innerHTML += '<br><span class="status-badge">学習中</span>';
+                        }
                     }
                     grid.appendChild(link);
                 });
@@ -102,10 +110,20 @@
 
                 authDiv.innerHTML = `<div style="padding:20px; color:#64748b;">読み込み中...</div>`;
 
-                let startedApps = new Set();
+                let progressData = {};
+                let startedCount = 0;
+                let masteredCount = 0;
                 try {
                     const snap = await getDocs(collection(db, "leap_users", user.uid, "progress"));
-                    snap.forEach(doc => startedApps.add(doc.id));
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        progressData[doc.id] = data;
+                        if (data.quizScore === 100) {
+                            masteredCount++;
+                        } else if (data.started) {
+                            startedCount++;
+                        }
+                    });
                 } catch (err) { console.error(err); }
 
                 authDiv.innerHTML = `
@@ -115,7 +133,10 @@
                                 <img src="${user.photoURL}" style="width:60px; height:60px; border-radius:50%; object-fit: cover;">
                                 <div>
                                     <h2 style="margin:0; font-size:1.3rem;">${user.displayName}</h2>
-                                    <span style="font-size:0.85rem; color:#64748b;">学習中セクション: ${startedApps.size} / ${appsInfo.length}</span>
+                                    <div style="margin-top:5px; font-size:0.85rem; color:#64748b; display:flex; flex-direction:column; gap:3px;">
+                                        <span>学習中セクション: ${startedCount} / ${appsInfo.length}</span>
+                                        <span style="color: #166534; font-weight: bold;">👑 マスターセクション: ${masteredCount} / ${appsInfo.length}</span>
+                                    </div>
                                 </div>
                             </div>
                             <button id="btn-logout" style="background:#f1f5f9; color:#475569; border:none; padding:10px 20px; border-radius:8px; font-weight:bold; cursor:pointer;">ログアウト</button>
@@ -123,11 +144,11 @@
                     </div>
                 `;
                 document.getElementById('btn-logout').onclick = () => signOut(auth);
-                renderGrid(startedApps);
+                renderGrid(progressData);
             } else {
                 authDiv.innerHTML = `<button id="btn-login" style="padding:10px 20px; font-weight:bold; background:#1e3a8a; color:white; border:none; border-radius:5px; cursor:pointer;">Googleでログイン</button>`;
                 document.getElementById('btn-login').onclick = () => signInWithPopup(auth, provider).catch(e => alert("ログインエラー: " + e.message));
-                renderGrid(new Set());
+                renderGrid({});
             }
         });
     </script>
