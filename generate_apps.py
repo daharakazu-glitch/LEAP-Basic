@@ -383,6 +383,28 @@ def clean_japanese_example(text):
         return ""
     return str(text).strip()
 
+def split_by_markers(text, is_english=True):
+    markers = r'[①②③④⑤⑥⑦⑧⑨⑩]'
+    if not re.search(markers, text):
+        return [line.strip() for line in text.split('\n') if line.strip()]
+        
+    parts = re.split(r'([①②③④⑤⑥⑦⑧⑨⑩])', text)
+    sentences = []
+    
+    first_part = parts[0].strip()
+    if first_part:
+        sentences.append(first_part)
+        
+    for i in range(1, len(parts), 2):
+        content = parts[i+1] if i+1 < len(parts) else ""
+        if is_english:
+            content = re.sub(r'\s*\n\s*', ' ', content)
+        else:
+            content = re.sub(r'\s*\n\s*', '', content)
+        sentences.append(content.strip())
+        
+    return [s for s in sentences if s]
+
 sheets_to_process = ['Part1', 'Part2', 'Part3', 'Part4', 'Part5', '＋α', '外来語']
 
 output_dir = "generated_apps"
@@ -416,8 +438,8 @@ for sheet in sheets_to_process:
             
             en_clean = clean_english_example(en_text)
             ja_clean = clean_japanese_example(ja_text)
-            en_lines = [line.strip() for line in en_clean.split('\n') if line.strip()]
-            ja_lines = [line.strip() for line in ja_clean.split('\n') if line.strip()]
+            en_lines = split_by_markers(en_clean, is_english=True)
+            ja_lines = split_by_markers(ja_clean, is_english=False)
             
             if len(en_lines) > 1 and len(en_lines) == len(ja_lines):
                 for i, (en_l, ja_l) in enumerate(zip(en_lines, ja_lines)):
@@ -428,6 +450,8 @@ for sheet in sheets_to_process:
             else:
                 en_l = re.sub(r'^[①②③④⑤⑥⑦⑧⑨⑩\d+]\s*', '', en_clean)
                 ja_l = re.sub(r'^[①②③④⑤⑥⑦⑧⑨⑩\d+]\s*', '', ja_clean)
+                en_l = re.sub(r'\s*\n\s*', ' ', en_l)
+                ja_l = re.sub(r'\s*\n\s*', '', ja_l)
                 en_l = re.sub(r'[あ-んア-ン一-龥]+', '', en_l).strip()
                 chapter_data.append({"id": str(midashi), "answer": word, "explanation": explanation, "en": en_l, "ja": ja_l, "target_word": word})
                 
