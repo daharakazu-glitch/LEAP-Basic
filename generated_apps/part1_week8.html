@@ -959,8 +959,14 @@
 
             function nextQuestion() {
                 if (currentIdx >= questions.length) {
-                    if(window.saveLeapScore) window.saveLeapScore('quizScore', Math.round(score / questions.length * 100));
-                    quizContent.innerHTML = `<h3 class="text-3xl font-bold mb-4">結果: ${score}/${questions.length}</h3><p class="text-6xl text-purple-600 font-bold">${Math.round(score / questions.length * 100)}点</p>`;
+                    const finalScore = Math.round(score / questions.length * 100);
+                    if (window.saveLeapScore) {
+                        window.saveLeapScore('quizScore', finalScore);
+                    } else {
+                        console.error("Firebase saveLeapScore is not loaded yet.");
+                        alert("データベース連携が初期化されていません。ネットワーク接続が正常か、または広告ブロック/セキュリティ拡張機能により連携スクリプトの読込がブロックされていないかご確認ください。");
+                    }
+                    quizContent.innerHTML = `<h3 class="text-3xl font-bold mb-4">結果: ${score}/${questions.length}</h3><p class="text-6xl text-purple-600 font-bold">${finalScore}点</p>`;
                     return;
                 }
                 const q = questions[currentIdx];
