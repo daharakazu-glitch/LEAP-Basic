@@ -1144,7 +1144,7 @@
             <input type="checkbox" class="sentence-checkbox mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-id="${item.id}">
             <span class="text-sm font-bold text-gray-400 w-16">${item.id}</span>
             <div class="flex-1 cursor-pointer">
-                \${item.ja ? `<p class="mb-2 text-gray-700">\${item.ja}</p>` : ""}
+                ${item.ja ? '<p class="mb-2 text-gray-700">' + item.ja + '</p>' : ""}
                 <p class="font-english">${englishSentenceHtml}</p>
                 
                 <div class="action-buttons mt-4 hidden flex-wrap gap-2">
