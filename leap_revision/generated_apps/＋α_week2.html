@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEAP改訂版学習アプリ (＋α W2)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Tinos:wght@700&display=swap');
+
+        body {
+            background-color: #007BFF;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+
+        .font-english {
+            font-family: 'Tinos', 'Times New Roman', serif;
+            font-weight: 700;
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+        }
+
+        .answer-span {
+            color: #DC2626;
+            font-weight: 700;
+            display: none;
+        }
+
+        .underline-span {
+            text-decoration: underline;
+            text-underline-offset: 4px;
+            display: inline;
+        }
+
+        .show-answer .answer-span {
+            display: inline;
+        }
+
+        .show-answer .underline-span {
+            display: none;
+        }
+
+        .explanation {
+            display: none;
+            white-space: pre-wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        @media (max-width: 640px) {
+            #control-panel {
+                padding: 0.5rem;
+            }
+
+            #control-panel button {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        .sentence-item.word-mastered {
+            border-color: #f59e0b !important;
+            background-color: #fef3c7 !important;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+        }
+        .sentence-item.word-mastered .toggle-master-btn-local {
+            background-color: #f59e0b !important;
+        }
+        .sentence-item.word-mastered .toggle-master-btn-local:hover {
+            background-color: #d97706 !important;
+        }
+    </style>
+</head>
+
+<body class="text-gray-800 bg-blue-500 m-0 p-0" style="height: 100vh; height: 100dvh; overflow: hidden;">
+
+    <div id="main-scroll-wrapper" style="height: 100%; width: 100%; overflow-y: auto; display: flex; flex-direction: column; position: relative;">
+        
+        <div id="app-container" class="container mx-auto p-4 md:p-8 max-w-4xl flex-grow flex flex-col">
+            <header class="flex-shrink-0 text-center mb-4 bg-blue-500 p-4 rounded-xl shadow-lg">
+                <h1 class="text-2xl md:text-3xl font-bold text-white">LEAP改訂版学習アプリ</h1>
+                <h2 id="app-subtitle" class="text-xl md:text-2xl font-bold text-white">＋α Week 2</h2>
+            </header>
+
+            <main class="flex-grow bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg mb-2">
+                <div class="flex justify-between items-center mb-6">
+                    <a href="index.html" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-colors text-sm">
+                        ← ダッシュボード
+                    </a>
+                    <button id="start-quiz-btn"
+                        class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform transform hover:scale-105">
+                        ランダムテスト
+                    </button>
+                </div>
+
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h3 class="font-bold text-lg mb-2">選択した問題でPDFを作成</h3>
+                    <p class="text-gray-600 mb-4">学習したい問題のチェックボックスを選択してから、下のボタンを押してください。</p>
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="select-all-checkbox"
+                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <label for="select-all-checkbox" class="ml-2 block text-sm text-gray-900">すべて選択 / 解除</label>
+                    </div>
+                    <div class="flex justify-center">
+                        <button id="open-pdf-modal-btn"
+                            class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform transform hover:scale-105">PDFダウンロードの種類を選択</button>
+                    </div>
+                </div>
+
+                <div id="sentence-list" class="space-y-6">
+                    <!-- Sentences will be populated by JS -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Message/Score Modal -->
+    <div id="message-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div id="message-content" class="bg-white p-8 rounded-lg shadow-xl text-center">
+            <!-- Message content will be populated by JS -->
+        </div>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div id="quiz-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-40 p-4">
+        <div class="bg-white w-full max-w-2xl p-8 rounded-2xl shadow-2xl relative">
+            <button id="close-quiz-btn"
+                class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-3xl font-bold">&times;</button>
+            <div id="quiz-content">
+                <!-- Quiz content will be populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Download Modal -->
+    <div id="pdf-modal"
+        class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+        <div class="relative mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">ダウンロードするPDFの種類を選択</h3>
+                <div class="mt-4 px-7 py-3 space-y-3">
+                    <button id="download-list-btn" class="btn btn-primary w-full justify-start">1. 完全な単語のリスト</button>
+                    <button id="download-en-quiz-btn" class="btn btn-primary w-full justify-start">2. 英語の単語を解答する問題</button>
+                    <button id="download-ja-quiz-btn" class="btn btn-primary w-full justify-start">3. 単語の日本語訳を解答する問題</button>
+                    <button id="download-mixed-quiz-btn" class="btn btn-primary w-full justify-start">4. 英語と日本語が混在した問題</button>
+                    <button id="download-sentence-quiz-btn" class="btn btn-primary w-full justify-start">5. 例文の穴埋め問題</button>
+                    <button id="download-sentence-mixed-quiz-btn" class="btn btn-primary w-full justify-start">6. 例文の混合問題 (穴埋め/和訳)</button>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="close-modal-btn" class="btn btn-secondary w-full">キャンセル</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- App State ---
+        const chapterData = [
+    {
+        "id": "2051",
+        "answer": "dictate",
+        "explanation": "[他] ①～を書き取らせる　②～を命令する，規定する",
+        "en": "dictate a memo to my secretary",
+        "ja": "秘書にメモを書き取らせる",
+        "target_word": "dictate"
+    },
+    {
+        "id": "2052",
+        "answer": "provoke",
+        "explanation": "[他] ①（非難など）を引き起こす　②（意図的に）～を怒らせる",
+        "en": "provoke storms of protest",
+        "ja": "抗議の嵐を招く",
+        "target_word": "provoke"
+    },
+    {
+        "id": "2053",
+        "answer": "refine",
+        "explanation": "[他] ～を洗練させる",
+        "en": "refine my writing skills",
+        "ja": "書く技術を洗練させる",
+        "target_word": "refine"
+    },
+    {
+        "id": "2054",
+        "answer": "enlighten",
+        "explanation": "[他] ～を啓蒙する",
+        "en": "enlighten the ignorant",
+        "ja": "無知な人々を啓蒙する",
+        "target_word": "enlighten"
+    },
+    {
+        "id": "2055",
+        "answer": "unleash",
+        "explanation": "[他] （怒りなど）を爆発させる，～の束縛を解く",
+        "en": "unleash my anger on her",
+        "ja": "彼女に怒りをぶつける",
+        "target_word": "unleash"
+    },
+    {
+        "id": "2056",
+        "answer": "prolong",
+        "explanation": "[他] （時間・期間・感情など）を長引かせる",
+        "en": "prolong my stay until tomorrow",
+        "ja": "明日まで滞在を延長する",
+        "target_word": "prolong"
+    },
+    {
+        "id": "2057",
+        "answer": "mitigate",
+        "explanation": "[他] （苦痛・影響・罰など）～を緩和する",
+        "en": "mitigate the heat island effect",
+        "ja": "ヒートアイランド現象を緩和する",
+        "target_word": "mitigate"
+    },
+    {
+        "id": "2058",
+        "answer": "grind",
+        "explanation": "[他] （穀物，肉など）を挽く　",
+        "en": "grind corn into flour",
+        "ja": "トウモロコシを挽いて粉にする",
+        "target_word": "grind"
+    },
+    {
+        "id": "2059",
+        "answer": "withstand",
+        "explanation": "[他] ～に耐える",
+        "en": "a building that can withstand major earthquakes",
+        "ja": "大地震に耐えられる建物",
+        "target_word": "withstand"
+    },
+    {
+        "id": "2060",
+        "answer": "exert",
+        "explanation": "[他] （力，影響力など）を働かせる",
+        "en": "exert strong leadership",
+        "ja": "強いリーダーシップを発揮する",
+        "target_word": "exert"
+    },
+    {
+        "id": "2061-1",
+        "answer": "summon",
+        "explanation": "[他] ①～を呼ぶ，召喚する，喚問する　②（勇気など）を奮い立たせる",
+        "en": "The ambassador was immediately summoned home.",
+        "ja": "その大使は即座に本国に召喚された．",
+        "target_word": "summon"
+    },
+    {
+        "id": "2061-2",
+        "answer": "summon",
+        "explanation": "[他] ①～を呼ぶ，召喚する，喚問する　②（勇気など）を奮い立たせる",
+        "en": "summon （up） all my strength",
+        "ja": "全力を出す",
+        "target_word": "summon"
+    },
+    {
+        "id": "2062-1",
+        "answer": "thrust",
+        "explanation": "[他] ①～を強く押しつける　②（刃物で）～を突き刺す",
+        "en": "thrust piles of banknotes into the bag",
+        "ja": "かばんに札束を詰め込む",
+        "target_word": "thrust"
+    },
+    {
+        "id": "2062-2",
+        "answer": "thrust",
+        "explanation": "[他] ①～を強く押しつける　②（刃物で）～を突き刺す",
+        "en": "thrust a fork into the piece of beef",
+        "ja": "牛肉にフォークを突き刺す",
+        "target_word": "thrust"
+    },
+    {
+        "id": "2063",
+        "answer": "pierce",
+        "explanation": "[他] ～を突き刺す，～を突き通す　",
+        "en": "have my ears pierced",
+        "ja": "耳に穴を開けてもらう",
+        "target_word": "pierce"
+    },
+    {
+        "id": "2064",
+        "answer": "harness",
+        "explanation": "[他] （自然の力など）を利用する",
+        "en": "harness the forces of nature",
+        "ja": "自然の諸力を利用する",
+        "target_word": "harness"
+    },
+    {
+        "id": "2065",
+        "answer": "excavate",
+        "explanation": "[他] ～を発掘する",
+        "en": "excavate an ancient town",
+        "ja": "古代の町を発掘する",
+        "target_word": "excavate"
+    },
+    {
+        "id": "2066",
+        "answer": "evade",
+        "explanation": "[他] ～を逃れる",
+        "en": "evade taxes",
+        "ja": "税金を逃れる",
+        "target_word": "evade"
+    },
+    {
+        "id": "2067",
+        "answer": "embody",
+        "explanation": "[他] ～を具体化する",
+        "en": "embody American ideals",
+        "ja": "アメリカの理想を具現化する",
+        "target_word": "embody"
+    },
+    {
+        "id": "2068-1",
+        "answer": "assimilate",
+        "explanation": "[他] ①（食物，考えなど）を吸収する　②（言語，民族など）を同化する",
+        "en": "assimilate new ideas",
+        "ja": "新しい考えを吸収する",
+        "target_word": "assimilate"
+    },
+    {
+        "id": "2068-2",
+        "answer": "assimilate",
+        "explanation": "[他] ①（食物，考えなど）を吸収する　②（言語，民族など）を同化する",
+        "en": "be fully assimilated into society",
+        "ja": "社会にすっかり溶け込む",
+        "target_word": "assimilate"
+    },
+    {
+        "id": "2069",
+        "answer": "discern",
+        "explanation": "[他] ～を見分ける",
+        "en": "discern the slight difference",
+        "ja": "そのささいな違いを見分ける",
+        "target_word": "discern"
+    },
+    {
+        "id": "2070",
+        "answer": "scrutinize",
+        "explanation": "[他] ～を詳細に調べる，精査する",
+        "en": "scrutinize the document",
+        "ja": "その書類を精査する",
+        "target_word": "scrutinize"
+    },
+    {
+        "id": "2071",
+        "answer": "streamline",
+        "explanation": "[他] （作業・組織など）～を合理化する",
+        "en": "streamline the production process",
+        "ja": "製造過程を合理化する",
+        "target_word": "streamline"
+    },
+    {
+        "id": "2072",
+        "answer": "mentor",
+        "explanation": "[他] ①～を指導する　[名] ②（会社，大学などでの）指導者",
+        "en": "",
+        "ja": "",
+        "target_word": "mentor"
+    },
+    {
+        "id": "2073",
+        "answer": "contemplate",
+        "explanation": "[他] ～を熟考する",
+        "en": "contemplate marrying her",
+        "ja": "彼女との結婚をじっくり考える",
+        "target_word": "contemplate"
+    },
+    {
+        "id": "2074",
+        "answer": "conjecture",
+        "explanation": "[他]  ～を推測する",
+        "en": "conjecture he will get promoted",
+        "ja": "彼は出世すると推測する",
+        "target_word": "conjecture"
+    },
+    {
+        "id": "2075-1",
+        "answer": "presume",
+        "explanation": "[他] ①（人が主語）～と推定する　②（計画などが主語）～を前提とする",
+        "en": "presume that he was drunk",
+        "ja": "彼は酒に酔っていたと推定する",
+        "target_word": "presume"
+    },
+    {
+        "id": "2075-2",
+        "answer": "presume",
+        "explanation": "[他] ①（人が主語）～と推定する　②（計画などが主語）～を前提とする",
+        "en": "This course presumes some knowledge of Latin.",
+        "ja": "この授業はある程度のラテン語の知識を前提とします．",
+        "target_word": "presume"
+    },
+    {
+        "id": "2076",
+        "answer": "gauge",
+        "explanation": "[他] ～を（慎重に）判断する，評価する",
+        "en": "gauge others by your own standards",
+        "ja": "自分自身の尺度で他者を評価する",
+        "target_word": "gauge"
+    },
+    {
+        "id": "2077",
+        "answer": "verify",
+        "explanation": "[他] （事実かどうか）を確かめる，検証する",
+        "en": "verify the test results",
+        "ja": "実験結果を検証する",
+        "target_word": "verify"
+    },
+    {
+        "id": "2078",
+        "answer": "pledge",
+        "explanation": "[他] ～を誓う",
+        "en": "The prime minister pledged to curb inflation.",
+        "ja": "首相はインフレを抑制することを誓った．",
+        "target_word": "pledge"
+    },
+    {
+        "id": "2079",
+        "answer": "dismay",
+        "explanation": "[他] ①～を狼狽させる　[名] ②狼狽　",
+        "en": "to my dismay",
+        "ja": "私が狼狽したことに",
+        "target_word": "dismay"
+    },
+    {
+        "id": "2080",
+        "answer": "lament",
+        "explanation": "[他] ～を深く悲しむ，嘆く",
+        "en": "lament the death of the leader",
+        "ja": "指導者の死を深く悲しむ",
+        "target_word": "lament"
+    },
+    {
+        "id": "2081",
+        "answer": "perplex",
+        "explanation": "[他] ～を困惑させる",
+        "en": "",
+        "ja": "",
+        "target_word": "perplex"
+    },
+    {
+        "id": "2082",
+        "answer": "disgust",
+        "explanation": "[他] ①～に嫌悪を抱かせる　[名] ②嫌悪",
+        "en": "",
+        "ja": "",
+        "target_word": "disgust"
+    },
+    {
+        "id": "2083",
+        "answer": "evoke",
+        "explanation": "[他] ～を呼び起こす",
+        "en": "evoke memories of my childhood",
+        "ja": "子どものころの記憶を呼び起こす",
+        "target_word": "evoke"
+    },
+    {
+        "id": "2084-1",
+        "answer": "harbor",
+        "explanation": "[他] ①（悪意・疑いなど）を心に抱く　②（菌など）を住まわせる",
+        "en": "harbor deep resentment against him",
+        "ja": "彼に深い憤りを抱く",
+        "target_word": "harbor"
+    },
+    {
+        "id": "2084-2",
+        "answer": "harbor",
+        "explanation": "[他] ①（悪意・疑いなど）を心に抱く　②（菌など）を住まわせる",
+        "en": "Dirty towels can harbor dangerous germs.",
+        "ja": "汚れたタオルは危険なばい菌の住処になりうる（ばい菌を住まわせる）．",
+        "target_word": "harbor"
+    },
+    {
+        "id": "2085",
+        "answer": "friction",
+        "explanation": "[名] 摩擦",
+        "en": "trade friction between the two countries",
+        "ja": "両国間の貿易摩擦",
+        "target_word": "friction"
+    },
+    {
+        "id": "2086",
+        "answer": "mutation",
+        "explanation": "[名] 突然変異",
+        "en": "Mutations occurred in fruit flies.",
+        "ja": "ミバエに突然変異が生じた．",
+        "target_word": "mutation"
+    },
+    {
+        "id": "2087",
+        "answer": "heredity",
+        "explanation": "[名] 遺伝",
+        "en": "Mendel’s laws of heredity",
+        "ja": "メンデルの遺伝の法則",
+        "target_word": "heredity"
+    },
+    {
+        "id": "2088",
+        "answer": "synthesis",
+        "explanation": "[名] 合成，統合",
+        "en": "",
+        "ja": "",
+        "target_word": "synthesis"
+    },
+    {
+        "id": "2089",
+        "answer": "veterinarian",
+        "explanation": "[名] 獣医",
+        "en": "",
+        "ja": "",
+        "target_word": "veterinarian"
+    },
+    {
+        "id": "2090",
+        "answer": "epidemic",
+        "explanation": "[名] （大）流行",
+        "en": "",
+        "ja": "",
+        "target_word": "epidemic"
+    },
+    {
+        "id": "2091",
+        "answer": "obesity",
+        "explanation": "[名] （病的な）肥満",
+        "en": "",
+        "ja": "",
+        "target_word": "obesity"
+    },
+    {
+        "id": "2092",
+        "answer": "neuron",
+        "explanation": "[名] ニューロン，神経単位",
+        "en": "",
+        "ja": "",
+        "target_word": "neuron"
+    },
+    {
+        "id": "2093",
+        "answer": "dementia",
+        "explanation": "[名] 認知症",
+        "en": "",
+        "ja": "",
+        "target_word": "dementia"
+    },
+    {
+        "id": "2094",
+        "answer": "diabetes",
+        "explanation": "[名] 糖尿病",
+        "en": "develop[suffer from] diabetes",
+        "ja": "糖尿病になる［を患う］",
+        "target_word": "diabetes"
+    },
+    {
+        "id": "2095",
+        "answer": "placebo",
+        "explanation": "[名] 偽薬，プラシーボ",
+        "en": "",
+        "ja": "",
+        "target_word": "placebo"
+    },
+    {
+        "id": "2096",
+        "answer": "malnutrition",
+        "explanation": "[名] 栄養失調",
+        "en": "",
+        "ja": "",
+        "target_word": "malnutrition"
+    },
+    {
+        "id": "2097",
+        "answer": "dehydration",
+        "explanation": "[名] 脱水（症状）",
+        "en": "",
+        "ja": "",
+        "target_word": "dehydration"
+    },
+    {
+        "id": "2098",
+        "answer": "abortion",
+        "explanation": "[名] （妊娠）中絶（手術）",
+        "en": "",
+        "ja": "",
+        "target_word": "abortion"
+    },
+    {
+        "id": "2099",
+        "answer": "antibiotic",
+        "explanation": "[名] （通例－s）抗生物質",
+        "en": "",
+        "ja": "",
+        "target_word": "antibiotic"
+    },
+    {
+        "id": "2100",
+        "answer": "psychiatry",
+        "explanation": "[名] 精神科，精神医学",
+        "en": "",
+        "ja": "",
+        "target_word": "psychiatry"
+    }
+];
+
+        let activeSentenceElement = null;
+        let selectedSentences = new Set();
+
+        const sentenceList = document.getElementById('sentence-list');
+        const startQuizBtn = document.getElementById('start-quiz-btn');
+        const messageModal = document.getElementById('message-modal');
+        const messageContent = document.getElementById('message-content');
+        const quizModal = document.getElementById('quiz-modal');
+        const closeQuizBtn = document.getElementById('close-quiz-btn');
+        const quizContent = document.getElementById('quiz-content');
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const pdfModal = document.getElementById('pdf-modal');
+        const openPdfModalBtn = document.getElementById('open-pdf-modal-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        // --- Voice Synthesis Setup ---
+        if (typeof speechSynthesis !== 'undefined') {
+            speechSynthesis.getVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = () => {
+                    speechSynthesis.getVoices();
+                };
+            }
+        }
+
+        function getBestEnglishVoice(voices) {
+            const excludedVoices = [
+                'albert', 'bad news', 'bells', 'boing', 'bubbles', 'cellos', 
+                'deranged', 'good news', 'hysterical', 'pipe organ', 'trinoids', 
+                'whisper', 'zarvox', 'fred', 'juniper', 'ralph', 'kathy', 'siri'
+            ];
+            
+            const englishVoices = voices.filter(v => {
+                const lang = v.lang.toLowerCase();
+                const name = v.name.toLowerCase();
+                return lang.startsWith('en') && !excludedVoices.some(ex => name.includes(ex));
+            });
+
+            if (englishVoices.length === 0) {
+                return voices.find(v => v.lang.toLowerCase().startsWith('en')) || null;
+            }
+
+            const isGoogle = v => v.name.toLowerCase().includes('google');
+            const isSamantha = v => v.name.toLowerCase().includes('samantha');
+            const isDaniel = v => v.name.toLowerCase().includes('daniel');
+            const isPremium = v => v.name.toLowerCase().includes('premium') || v.name.toLowerCase().includes('enhanced') || v.name.toLowerCase().includes('natural');
+            const isUS = v => v.lang.toLowerCase() === 'en-us';
+            const isGB = v => v.lang.toLowerCase() === 'en-gb';
+
+            let voice = englishVoices.find(v => isUS(v) && isGoogle(v));
+            if (voice) return voice;
+
+            voice = englishVoices.find(v => isGB(v) && isGoogle(v));
+            if (voice) return voice;
+
+            voice = englishVoices.find(isGoogle);
+            if (voice) return voice;
+
+            voice = englishVoices.find(isSamantha);
+            if (voice) return voice;
+
+            voice = englishVoices.find(isDaniel);
+            if (voice) return voice;
+
+            voice = englishVoices.find(v => isUS(v) && isPremium(v));
+            if (voice) return voice;
+
+            voice = englishVoices.find(isPremium);
+            if (voice) return voice;
+
+            voice = englishVoices.find(v => isUS(v));
+            if (voice) return voice;
+
+            voice = englishVoices.find(v => isGB(v));
+            if (voice) return voice;
+
+            return englishVoices[0];
+        }
+
+        // --- Core Functions ---
+        function formatEnglishSentence(item) {
+            const enSentence = item.en;
+            const answer = item.answer;
+            const blank = '__________';
+
+            if (!enSentence) return `<span class="answer-span text-3xl">${answer}</span>`;
+
+            let baseWord = answer.replace(/[～AB]/g, '').replace(/（.*?）/g, '').replace(/\(.*?\)/g, '').trim();
+            let searchWords = [];
+            
+            if (baseWord.length > 0) searchWords.push(baseWord);
+            
+            if (baseWord === 'oneself') {
+                searchWords.push('myself', 'yourself', 'himself', 'herself', 'itself', 'ourselves', 'yourselves', 'themselves');
+            } else {
+                const words = baseWord.split(/\s+/).filter(w => w.length > 0 && /^[a-zA-Z]+$/.test(w));
+                if (words.length > 0) {
+                    let w = words[0].toLowerCase();
+                    searchWords.push(w);
+                    searchWords.push(w + 's', w + 'es', w + 'd', w + 'ed', w + 'ing');
+                    if (w.endsWith('e')) searchWords.push(w.slice(0, -1) + 'ing');
+                    if (w.endsWith('y')) searchWords.push(w.slice(0, -1) + 'ies', w.slice(0, -1) + 'ied');
+                    if (w.length > 2) {
+                        const last = w.slice(-1);
+                        searchWords.push(w + last + 'ed', w + last + 'ing');
+                    }
+                    
+                    const irregulars = {
+                        'write': ['wrote', 'written'], 'speak': ['spoke', 'spoken'], 'say': ['said'], 'tell': ['told'],
+                        'see': ['saw', 'seen'], 'hear': ['heard'], 'take': ['took', 'taken'], 'meet': ['met'],
+                        'feel': ['felt'], 'think': ['thought'], 'know': ['knew', 'known'], 'choose': ['chose', 'chosen'],
+                        'leave': ['left'], 'make': ['made'], 'catch': ['caught'], 'find': ['found'], 'buy': ['bought'],
+                        'bring': ['brought'], 'teach': ['taught'], 'understand': ['understood'], 'build': ['built'],
+                        'send': ['sent'], 'spend': ['spent'], 'lose': ['lost'], 'sleep': ['slept'], 'keep': ['kept'],
+                        'do': ['did', 'done'], 'go': ['went', 'gone'], 'come': ['came'], 'run': ['ran'],
+                        'give': ['gave', 'given'], 'get': ['got', 'gotten'], 'forget': ['forgot', 'forgotten'],
+                        'begin': ['began', 'begun'], 'drink': ['drank', 'drunk'], 'swim': ['swam', 'swum'],
+                        'sing': ['sang', 'sung'], 'ring': ['rang', 'rung'], 'drive': ['drove', 'driven'],
+                        'ride': ['rode', 'ridden'], 'eat': ['ate', 'eaten'], 'fall': ['fell', 'fallen'],
+                        'hold': ['held'], 'stand': ['stood'], 'sit': ['sat'], 'win': ['won'], 'pay': ['paid'],
+                        'sell': ['sold'], 'break': ['broke', 'broken'], 'wear': ['wore', 'worn'],
+                        'grow': ['grew', 'grown'], 'fly': ['flew', 'flown'], 'blow': ['blew', 'blown'],
+                        'draw': ['drew', 'drawn'], 'throw': ['threw', 'thrown'], 'hide': ['hid', 'hidden'],
+                        'fight': ['fought'], 'feed': ['fed'], 'strike': ['struck'], 'wake': ['woke', 'woken'],
+                        'bear': ['bore', 'born'], 'beat': ['beat', 'beaten'], 'bind': ['bound'], 'bleed': ['bled'],
+                        'breed': ['bred'], 'tear': ['tore', 'torn'], 'sweep': ['swept'], 'weep': ['wept'],
+                        'bend': ['bent'], 'lend': ['lent'], 'mean': ['meant'], 'lead': ['led'], 'shoot': ['shot']
+                    };
+                    
+                    if (irregulars[w]) searchWords.push(...irregulars[w]);
+                }
+            }
+
+            for (let actualWord of searchWords) {
+                if (!actualWord) continue;
+                try {
+                    const regex = new RegExp(`\\b${actualWord}\\b`, 'gi');
+                    if (regex.test(enSentence)) {
+                        return enSentence.replace(regex, match => `<span class="answer-span">${match}</span><span class="underline-span">${blank}</span>`);
+                    }
+                } catch (e) { }
+            }
+            
+            for (let actualWord of searchWords) {
+                if (!actualWord) continue;
+                if (enSentence.toLowerCase().includes(actualWord.toLowerCase())) {
+                    const index = enSentence.toLowerCase().indexOf(actualWord.toLowerCase());
+                    if (index !== -1) {
+                        const originalWord = enSentence.substring(index, index + actualWord.length);
+                        return enSentence.substring(0, index) +
+                            `<span class="answer-span">${originalWord}</span><span class="underline-span">${blank}</span>` +
+                            enSentence.substring(index + actualWord.length);
+                    }
+                }
+            }
+
+            return enSentence;
+        }
+
+        function renderChapter() {
+            sentenceList.innerHTML = '';
+            chapterData.forEach(item => {
+                const sentenceDiv = document.createElement('div');
+                sentenceDiv.className = 'sentence-item p-4 border border-gray-200 rounded-lg bg-white transition-shadow duration-300 hover:shadow-md';
+                sentenceDiv.dataset.id = item.id;
+                sentenceDiv.dataset.fullSentence = item.en;
+
+                const englishSentenceHtml = formatEnglishSentence(item);
+
+                sentenceDiv.innerHTML = `
+        <div class="flex items-start space-x-4">
+            <input type="checkbox" class="sentence-checkbox mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-id="${item.id}">
+            <span class="text-sm font-bold text-gray-400 w-16">${item.id}</span>
+            <div class="flex-1 cursor-pointer">
+                \${item.ja ? `<p class="mb-2 text-gray-700">\${item.ja}</p>` : ""}
+                <p class="font-english">${englishSentenceHtml}</p>
+                
+                <div class="action-buttons mt-4 hidden flex-wrap gap-2">
+                    <button class="toggle-answer-btn-local bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">表示/非表示</button>
+                    <button class="play-sound-btn-local bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">音声再生</button>
+                    <button class="play-slow-btn-local bg-teal-500 hover:bg-teal-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">ゆっくり</button>
+                    <button class="record-btn-local bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">録音評価</button>
+                    <button class="toggle-explanation-btn-local bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">語の意味</button>
+                    <button class="toggle-master-btn-local bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">⭐ マスター</button>
+                </div>
+
+                <div class="explanation mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 text-gray-700 rounded-r-lg" style="display: none;">
+                ${item.explanation}
+                </div>
+            </div>
+        </div>
+        `;
+                sentenceList.appendChild(sentenceDiv);
+            });
+
+            document.querySelectorAll('.sentence-item .flex-1').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if(e.target.tagName === 'BUTTON') return;
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    if (activeSentenceElement && activeSentenceElement !== sentenceWrapper) {
+                        activeSentenceElement.classList.remove('ring-2', 'ring-blue-400', 'shadow-xl');
+                        activeSentenceElement.querySelector('.action-buttons').classList.add('hidden');
+                        activeSentenceElement.querySelector('.action-buttons').classList.remove('flex');
+                    }
+                    activeSentenceElement = sentenceWrapper;
+                    activeSentenceElement.classList.add('ring-2', 'ring-blue-400', 'shadow-xl');
+                    activeSentenceElement.querySelector('.action-buttons').classList.remove('hidden');
+                    activeSentenceElement.querySelector('.action-buttons').classList.add('flex');
+                });
+                
+                item.querySelector('.toggle-answer-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    sentenceWrapper.classList.toggle('show-answer');
+                });
+                
+                item.querySelector('.play-sound-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playSound(1.0);
+                });
+                
+                item.querySelector('.play-slow-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playSound(0.8);
+                });
+                
+                item.querySelector('.record-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleRecording();
+                });
+                
+                item.querySelector('.toggle-explanation-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    const exp = sentenceWrapper.querySelector('.explanation');
+                    if (exp) exp.style.display = exp.style.display === 'block' ? 'none' : 'block';
+                });
+
+                item.querySelector('.toggle-master-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    const wordId = sentenceWrapper.dataset.id;
+                    const isMastered = sentenceWrapper.classList.contains('word-mastered');
+                    if (window.toggleWordMasterState) {
+                        window.toggleWordMasterState(wordId, !isMastered);
+                    } else {
+                        sentenceWrapper.classList.toggle('word-mastered');
+                        e.currentTarget.innerText = sentenceWrapper.classList.contains('word-mastered') ? "⭐ マスター解除" : "⭐ マスター";
+                    }
+                });
+            });
+
+            document.querySelectorAll('.sentence-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (e.target.checked) selectedSentences.add(e.target.dataset.id);
+                    else selectedSentences.delete(e.target.dataset.id);
+                });
+            });
+
+            if (sentenceList.firstChild) sentenceList.firstChild.querySelector('.flex-1').click();
+        }
+
+        function showMessage(htmlContent, duration = null) {
+            messageContent.innerHTML = htmlContent;
+            messageModal.classList.remove('hidden');
+            if (duration) setTimeout(() => messageModal.classList.add('hidden'), duration);
+        }
+
+        function playSound(speed = 1.0) {
+            if (!activeSentenceElement) return;
+            const text = activeSentenceElement.dataset.fullSentence;
+            if (!text) return;
+
+            try {
+                speechSynthesis.cancel();
+            } catch (e) {}
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = speed;
+
+            const voices = speechSynthesis.getVoices();
+            const bestVoice = getBestEnglishVoice(voices);
+            if (bestVoice) {
+                utterance.voice = bestVoice;
+                utterance.lang = bestVoice.lang;
+            } else {
+                console.warn("No custom English voice found, using browser default.");
+            }
+
+            utterance.onerror = (e) => {
+                console.error("SpeechSynthesis error:", e.error);
+            };
+
+            speechSynthesis.speak(utterance);
+        }
+
+        function handleRecording() {
+            if (!activeSentenceElement) return;
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showMessage('<p>お使いのブラウザは音声認識に対応していません。</p>', 3000);
+                return;
+            }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.onstart = () => showMessage('<p class="text-2xl">マイクに向かって話してください...</p><div class="animate-pulse text-red-500 text-4xl mt-4">●</div>');
+            recognition.onresult = (event) => evaluatePronunciation(event.results[0][0].transcript);
+            recognition.onerror = () => showMessage('<p>認識エラーが発生しました。</p>', 2000);
+            recognition.start();
+        }
+
+        function evaluatePronunciation(transcript) {
+            const original = activeSentenceElement.dataset.fullSentence.toLowerCase().replace(/[^\w\s]/g, '');
+            const user = transcript.toLowerCase().replace(/[^\w\s]/g, '');
+            const score = Math.min(100, Math.floor((user.split(' ').filter(w => original.includes(w)).length / original.split(' ').length) * 100) + 15);
+
+            if (score >= 80) {
+                const wordId = activeSentenceElement.dataset.id;
+                if (window.toggleWordMasterState) {
+                    window.toggleWordMasterState(wordId, true);
+                } else {
+                    const wrapper = document.querySelector(`.sentence-item[data-id="${wordId}"]`);
+                    if (wrapper) {
+                        wrapper.classList.add('word-mastered');
+                        const btn = wrapper.querySelector('.toggle-master-btn-local');
+                        if (btn) btn.innerText = "⭐ マスター解除";
+                    }
+                }
+            }
+
+            if(window.saveLeapScore) window.saveLeapScore('pronunciationScore_' + activeSentenceElement.dataset.id, score);
+            showMessage(`
+                <h3 class="text-2xl font-bold mb-4">評価結果</h3>
+                <p class="text-7xl font-bold text-blue-600 mb-4">${score}<span class="text-2xl">点</span></p>
+                <p class="text-gray-600 mb-2"><strong>認識結果:</strong> ${transcript}</p>
+                <button onclick="document.getElementById('message-modal').classList.add('hidden')" class="mt-6 bg-blue-500 text-white py-2 px-6 rounded-lg">閉じる</button>
+            `);
+        }
+
+        function startQuiz() {
+            const questions = [...chapterData].sort(() => 0.5 - Math.random()).slice(0, 10);
+            let currentIdx = 0, score = 0;
+
+            function extractBlankWord(item) {
+                const formatted = formatEnglishSentence(item);
+                const match = formatted.match(/<span class="answer-span">([\s\S]*?)<\/span>/);
+                return match ? match[1].trim() : item.answer;
+            }
+
+            function nextQuestion() {
+                if (currentIdx >= questions.length) {
+                    const finalScore = Math.round(score / questions.length * 100);
+                    if (window.saveLeapScore) {
+                        window.saveLeapScore('quizScore', finalScore);
+                    } else {
+                        console.error("Firebase saveLeapScore is not loaded yet.");
+                        alert("データベース連携が初期化されていません。ネットワーク接続が正常か、または広告ブロック/セキュリティ拡張機能により連携スクリプトの読込がブロックされていないかご確認ください。");
+                    }
+                    quizContent.innerHTML = `<h3 class="text-3xl font-bold mb-4">結果: ${score}/${questions.length}</h3><p class="text-6xl text-purple-600 font-bold">${finalScore}点</p>`;
+                    return;
+                }
+                const q = questions[currentIdx];
+                const correctWord = extractBlankWord(q);
+                
+                const formattedQ = formatEnglishSentence(q);
+                let displaySentence = formattedQ.replace(/<span class="answer-span">[\s\S]*?<\/span><span class="underline-span">__________<\/span>/g, '__________');
+                if (displaySentence === q.en && q.en) {
+                    displaySentence = q.en;
+                } else if (!q.en) {
+                    displaySentence = "(例文なし)";
+                }
+
+                const allOtherWords = chapterData.filter(d => d.id !== q.id).map(d => extractBlankWord(d));
+                const uniqueOtherWords = [...new Set(allOtherWords)].filter(w => w !== correctWord);
+                const distractors = uniqueOtherWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+                
+                const options = [correctWord, ...distractors].sort(() => 0.5 - Math.random());
+
+                quizContent.innerHTML = `
+                    <p class="mb-2 text-gray-500">問題 ${currentIdx + 1}/10</p>
+                    <p class="text-lg font-bold mb-2 text-gray-700">${q.ja}</p>
+                    <p class="text-xl font-bold mb-6 font-english text-blue-800">${displaySentence}</p>
+                    <div class="grid grid-cols-1 gap-3">
+                        ${options.map(opt => `<button class="quiz-opt p-3 border-2 border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 font-english transition-colors">${opt}</button>`).join('')}
+                    </div>
+                `;
+                document.querySelectorAll('.quiz-opt').forEach(btn => {
+                    btn.onclick = () => {
+                        if (btn.innerText === correctWord) { btn.classList.add('bg-green-200', 'border-green-400'); score++; }
+                        else { btn.classList.add('bg-red-200', 'border-red-400'); }
+                        
+                        document.querySelectorAll('.quiz-opt').forEach(b => b.disabled = true);
+                        
+                        // 3 seconds timeout to verify answer details
+                        setTimeout(() => { currentIdx++; nextQuestion(); }, 3000);
+                    };
+                });
+            }
+            quizModal.classList.remove('hidden');
+            nextQuestion();
+        }
+
+        // --- PDF Print Logic ---
+        function openPrintWindow(content, title) {
+            const win = window.open('', '_blank');
+            win.document.write(`<html><head><title>${title}</title><style>body{font-family:sans-serif;padding:40px} .list{column-count:2} li{margin-bottom:10px} .ans{margin-top:50px;border-top:1px solid #000;padding-top:20px}</style></head><body><h1>${title}</h1>${content}</body></html>`);
+            win.document.close();
+            setTimeout(() => { win.focus(); win.print(); }, 500);
+        }
+
+        function getSelected() {
+            return Array.from(selectedSentences).map(id => chapterData.find(d => d.id == id)).sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+        }
+
+        startQuizBtn.onclick = startQuiz;
+        closeQuizBtn.onclick = () => quizModal.classList.add('hidden');
+        openPdfModalBtn.onclick = () => selectedSentences.size ? pdfModal.classList.remove('hidden') : showMessage('問題を選択してください', 2000);
+        closeModalBtn.onclick = () => pdfModal.classList.add('hidden');
+        selectAllCheckbox.onchange = (e) => {
+            document.querySelectorAll('.sentence-checkbox').forEach(cb => {
+                cb.checked = e.target.checked;
+                if (e.target.checked) selectedSentences.add(cb.dataset.id);
+                else selectedSentences.delete(cb.dataset.id);
+            });
+        };
+
+        document.getElementById('download-list-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => `<li><strong>${i.answer}</strong>: ${i.explanation}</li>`).join('')}</ul></div>`;
+            openPrintWindow(html, '重要語句リスト');
+        };
+
+        document.getElementById('download-sentence-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<ol>${items.map(i => {
+                if (!i.en) return `<li>（例文なし: ${i.answer}）</li>`;
+                let displaySentence = formatEnglishSentence(i).replace(/<span class="answer-span">[\s\S]*?<\/span><span class="underline-span">__________<\/span>/g, '__________');
+                return `<li>${displaySentence}<br><small>${i.ja}</small></li>`;
+            }).join('')}</ol><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer).join(', ')}</p></div>`;
+            openPrintWindow(html, '例文穴埋めテスト');
+        };
+
+        document.getElementById('download-en-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => `<li>[日本語]: ${i.ja}<br>[英語]: __________</li>`).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer).join(', ')}</p></div>`;
+            openPrintWindow(html, '英単語テスト');
+        };
+
+        document.getElementById('download-ja-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.explanation.split('\n')[0]).join('<br>')}</p></div>`;
+            openPrintWindow(html, '意味テスト');
+        };
+
+        document.getElementById('download-mixed-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => {
+                return Math.random() > 0.5
+                    ? `<li>[日本語]: ${i.ja}<br>[英語]: __________</li>`
+                    : `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`;
+            }).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer + ' / ' + i.explanation).join('<br>')}</p></div>`;
+            openPrintWindow(html, '英単語・意味混合テスト');
+        };
+
+        document.getElementById('download-sentence-mixed-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<ol>${items.map(i => {
+                if (!i.en) {
+                    return `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`;
+                }
+                if (Math.random() > 0.5) {
+                    let displaySentence = formatEnglishSentence(i).replace(/<span class="answer-span">[\s\S]*?<\/span><span class="underline-span">__________<\/span>/g, '__________');
+                    return `<li>${displaySentence}<br><small>${i.ja}</small></li>`;
+                } else {
+                    return `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`;
+                }
+            }).join('')}</ol><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer + ' / ' + i.explanation.split('\n')[0]).join('<br>')}</p></div>`;
+            openPrintWindow(html, 'ランダム混合テスト');
+        };
+
+        document.addEventListener('DOMContentLoaded', renderChapter);
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCNrvDMnlN_geijgRguQrolnTIZ_rdZwyw",
+            authDomain: "sokudoku-stories-db.firebaseapp.com",
+            projectId: "sokudoku-stories-db",
+            storageBucket: "sokudoku-stories-db.firebasestorage.app",
+            messagingSenderId: "979353290932",
+            appId: "1:979353290932:web:f0c512cfbe64a7afe36fe1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Prefix page ID with 'revision_' to isolate LEAP Revision data from LEAP Basic
+        const pageId = window.location.pathname.split('/').pop().replace('.html', '');
+        const appId = "revision_" + pageId;
+
+        window.localMasteredWords = {};
+
+        window.applyLoadedMasteredWords = (masteredWords) => {
+            window.localMasteredWords = masteredWords || {};
+            document.querySelectorAll('.sentence-item').forEach(wrapper => {
+                const wordId = wrapper.dataset.id;
+                const btn = wrapper.querySelector('.toggle-master-btn-local');
+                if (window.localMasteredWords[wordId] === true) {
+                    wrapper.classList.add('word-mastered');
+                    if(btn) btn.innerText = "⭐ マスター解除";
+                } else {
+                    wrapper.classList.remove('word-mastered');
+                    if(btn) btn.innerText = "⭐ マスター";
+                }
+            });
+        };
+
+        window.toggleWordMasterState = (wordId, makeMastered) => {
+            if (window.currentUser) {
+                const docRef = doc(db, "leap_users", window.currentUser.uid, "progress", appId);
+                window.localMasteredWords[wordId] = makeMastered;
+                
+                const updateData = {
+                    masteredWords: {
+                        [wordId]: makeMastered
+                    }
+                };
+                
+                setDoc(docRef, updateData, { merge: true })
+                .then(() => {
+                    console.log(`Word ${wordId} master state:`, makeMastered);
+                    window.applyLoadedMasteredWords(window.localMasteredWords);
+                })
+                .catch(e => {
+                    console.error("Error updating word master:", e);
+                    alert("マスター状態の保存に失敗しました: " + e.message);
+                });
+            } else {
+                window.localMasteredWords[wordId] = makeMastered;
+                window.applyLoadedMasteredWords(window.localMasteredWords);
+                console.warn("Saving locally only.");
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.currentUser = user;
+                console.log("Firebase Authenticated as:", user.email);
+                const docRef = doc(db, "leap_users", user.uid, "progress", appId);
+                
+                getDoc(docRef).then((docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        window.applyLoadedMasteredWords(data.masteredWords);
+                    }
+                }).catch(e => console.error("Error loading mastered words:", e));
+
+                setDoc(docRef, {
+                    started: true,
+                    lastAccessed: new Date().toISOString()
+                }, { merge: true }).then(() => {
+                    console.log("Progress started state saved successfully.");
+                }).catch(e => {
+                    console.error("Progress save error:", e);
+                    alert("進捗の自動保存に失敗しました: " + e.message);
+                });
+                
+                setDoc(doc(db, "leap_users", user.uid), {
+                    displayName: user.displayName,
+                    email: user.email,
+                    photoURL: user.photoURL,
+                    lastLogin: new Date().toISOString()
+                }, { merge: true }).catch(e => console.error("User profile save error:", e));
+            } else {
+                console.warn("No user session active on this page.");
+            }
+        });
+
+        window.saveLeapScore = (type, score) => {
+            if (window.currentUser) {
+                const docRef = doc(db, "leap_users", window.currentUser.uid, "progress", appId);
+                const updateData = {};
+                updateData[type] = score;
+                setDoc(docRef, updateData, { merge: true })
+                .then(() => {
+                    console.log("Score saved successfully:", type, score);
+                })
+                .catch(e => {
+                    console.error("Score save error:", e);
+                    alert("テスト結果の保存に失敗しました: " + e.message);
+                });
+            } else {
+                console.error("Score save failed: No user is logged in.");
+                alert("ログイン状態が確認できないため、テスト結果を保存できませんでした。ダッシュボードから再度ログインしてください。");
+            }
+        };
+    </script>
+</body>
+
+</html>

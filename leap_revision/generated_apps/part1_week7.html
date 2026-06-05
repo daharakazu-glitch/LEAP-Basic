@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEAP改訂版学習アプリ (P1 W7)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Tinos:wght@700&display=swap');
+
+        body {
+            background-color: #007BFF;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+
+        .font-english {
+            font-family: 'Tinos', 'Times New Roman', serif;
+            font-weight: 700;
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+        }
+
+        .answer-span {
+            color: #DC2626;
+            font-weight: 700;
+            display: none;
+        }
+
+        .underline-span {
+            text-decoration: underline;
+            text-underline-offset: 4px;
+            display: inline;
+        }
+
+        .show-answer .answer-span {
+            display: inline;
+        }
+
+        .show-answer .underline-span {
+            display: none;
+        }
+
+        .explanation {
+            display: none;
+            white-space: pre-wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        @media (max-width: 640px) {
+            #control-panel {
+                padding: 0.5rem;
+            }
+
+            #control-panel button {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        .sentence-item.word-mastered {
+            border-color: #f59e0b !important;
+            background-color: #fef3c7 !important;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+        }
+        .sentence-item.word-mastered .toggle-master-btn-local {
+            background-color: #f59e0b !important;
+        }
+        .sentence-item.word-mastered .toggle-master-btn-local:hover {
+            background-color: #d97706 !important;
+        }
+    </style>
+</head>
+
+<body class="text-gray-800 bg-blue-500 m-0 p-0" style="height: 100vh; height: 100dvh; overflow: hidden;">
+
+    <div id="main-scroll-wrapper" style="height: 100%; width: 100%; overflow-y: auto; display: flex; flex-direction: column; position: relative;">
+        
+        <div id="app-container" class="container mx-auto p-4 md:p-8 max-w-4xl flex-grow flex flex-col">
+            <header class="flex-shrink-0 text-center mb-4 bg-blue-500 p-4 rounded-xl shadow-lg">
+                <h1 class="text-2xl md:text-3xl font-bold text-white">LEAP改訂版学習アプリ</h1>
+                <h2 id="app-subtitle" class="text-xl md:text-2xl font-bold text-white">Part 1 Week 7</h2>
+            </header>
+
+            <main class="flex-grow bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg mb-2">
+                <div class="flex justify-between items-center mb-6">
+                    <a href="index.html" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-colors text-sm">
+                        ← ダッシュボード
+                    </a>
+                    <button id="start-quiz-btn"
+                        class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform transform hover:scale-105">
+                        ランダムテスト
+                    </button>
+                </div>
+
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h3 class="font-bold text-lg mb-2">選択した問題でPDFを作成</h3>
+                    <p class="text-gray-600 mb-4">学習したい問題のチェックボックスを選択してから、下のボタンを押してください。</p>
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="select-all-checkbox"
+                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <label for="select-all-checkbox" class="ml-2 block text-sm text-gray-900">すべて選択 / 解除</label>
+                    </div>
+                    <div class="flex justify-center">
+                        <button id="open-pdf-modal-btn"
+                            class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform transform hover:scale-105">PDFダウンロードの種類を選択</button>
+                    </div>
+                </div>
+
+                <div id="sentence-list" class="space-y-6">
+                    <!-- Sentences will be populated by JS -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Message/Score Modal -->
+    <div id="message-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div id="message-content" class="bg-white p-8 rounded-lg shadow-xl text-center">
+            <!-- Message content will be populated by JS -->
+        </div>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div id="quiz-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-40 p-4">
+        <div class="bg-white w-full max-w-2xl p-8 rounded-2xl shadow-2xl relative">
+            <button id="close-quiz-btn"
+                class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-3xl font-bold">&times;</button>
+            <div id="quiz-content">
+                <!-- Quiz content will be populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Download Modal -->
+    <div id="pdf-modal"
+        class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+        <div class="relative mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">ダウンロードするPDFの種類を選択</h3>
+                <div class="mt-4 px-7 py-3 space-y-3">
+                    <button id="download-list-btn" class="btn btn-primary w-full justify-start">1. 完全な単語のリスト</button>
+                    <button id="download-en-quiz-btn" class="btn btn-primary w-full justify-start">2. 英語の単語を解答する問題</button>
+                    <button id="download-ja-quiz-btn" class="btn btn-primary w-full justify-start">3. 単語の日本語訳を解答する問題</button>
+                    <button id="download-mixed-quiz-btn" class="btn btn-primary w-full justify-start">4. 英語と日本語が混在した問題</button>
+                    <button id="download-sentence-quiz-btn" class="btn btn-primary w-full justify-start">5. 例文の穴埋め問題</button>
+                    <button id="download-sentence-mixed-quiz-btn" class="btn btn-primary w-full justify-start">6. 例文の混合問題 (穴埋め/和訳)</button>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="close-modal-btn" class="btn btn-secondary w-full">キャンセル</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- App State ---
+        const chapterData = [
+    {
+        "id": "264-1",
+        "answer": "specific",
+        "explanation": "[形] ①特定の　②明確な，具体的な",
+        "en": "a specific age group",
+        "ja": "ある特定の年齢のグループ",
+        "target_word": "specific"
+    },
+    {
+        "id": "264-2",
+        "answer": "specific",
+        "explanation": "[形] ①特定の　②明確な，具体的な",
+        "en": "specific instructions",
+        "ja": "明確な指示",
+        "target_word": "specific"
+    },
+    {
+        "id": "265-1",
+        "answer": "common",
+        "explanation": "[形] ①普及した，普通の　②（主に名詞の前で）共通の",
+        "en": "E-books are becoming common.",
+        "ja": "電子書籍は普及しつつある．",
+        "target_word": "common"
+    },
+    {
+        "id": "265-2",
+        "answer": "common",
+        "explanation": "[形] ①普及した，普通の　②（主に名詞の前で）共通の",
+        "en": "a common ancestor",
+        "ja": "共通の祖先",
+        "target_word": "common"
+    },
+    {
+        "id": "266",
+        "answer": "unusual",
+        "explanation": "[形] 珍しい",
+        "en": "These days, it is not unusual for men to wear makeup.",
+        "ja": "最近は，男性が化粧するのは珍しくない．",
+        "target_word": "unusual"
+    },
+    {
+        "id": "267-1",
+        "answer": "add",
+        "explanation": "[他] ①～を加える　[自] ②（to ～）（～を）増やす",
+        "en": "add some milk to the coffee",
+        "ja": "コーヒーにミルクを加える",
+        "target_word": "add"
+    },
+    {
+        "id": "267-2",
+        "answer": "add",
+        "explanation": "[他] ①～を加える　[自] ②（to ～）（～を）増やす",
+        "en": "His chilling words added to her fear.",
+        "ja": "彼のぞっとするような言葉で彼女の恐怖は増した．",
+        "target_word": "add"
+    },
+    {
+        "id": "268-1",
+        "answer": "increase",
+        "explanation": "[自] ①増える　[他] ②～を増やす　[名] ③（in ～）（～の）増加",
+        "en": "increase by 30 percent",
+        "ja": "30％増える",
+        "target_word": "increase"
+    },
+    {
+        "id": "268-2",
+        "answer": "increase",
+        "explanation": "[自] ①増える　[他] ②～を増やす　[名] ③（in ～）（～の）増加",
+        "en": "increase my vocabulary",
+        "ja": "語彙を増やす",
+        "target_word": "increase"
+    },
+    {
+        "id": "268-3",
+        "answer": "increase",
+        "explanation": "[自] ①増える　[他] ②～を増やす　[名] ③（in ～）（～の）増加",
+        "en": "an increase in land prices",
+        "ja": "地価の上昇",
+        "target_word": "increase"
+    },
+    {
+        "id": "269-1",
+        "answer": "reduce",
+        "explanation": "[他] ①～を減らす　②（A to B） AをBにする",
+        "en": "reduce the amount of garbage",
+        "ja": "生ゴミ（の量）を減らす",
+        "target_word": "reduce"
+    },
+    {
+        "id": "269-2",
+        "answer": "reduce",
+        "explanation": "[他] ①～を減らす　②（A to B） AをBにする",
+        "en": "be reduced to poverty",
+        "ja": "貧困に陥る",
+        "target_word": "reduce"
+    },
+    {
+        "id": "270-1",
+        "answer": "divide",
+        "explanation": "[他] ①～を分割する　②（by ～）（～によって）（数字）を割る",
+        "en": "divide the stew into small portions",
+        "ja": "シチューを小分けにする",
+        "target_word": "divide"
+    },
+    {
+        "id": "270-2",
+        "answer": "divide",
+        "explanation": "[他] ①～を分割する　②（by ～）（～によって）（数字）を割る",
+        "en": "Eight divided by four is two.",
+        "ja": "8÷4＝2",
+        "target_word": "divide"
+    },
+    {
+        "id": "271-1",
+        "answer": "count",
+        "explanation": "[他] ①～を数える　[自]②数える　③重要である　④（on ～）（～を）（全面的に）当てにする",
+        "en": "count the money",
+        "ja": "お金を数える",
+        "target_word": "count"
+    },
+    {
+        "id": "271-2",
+        "answer": "count",
+        "explanation": "[他] ①～を数える　[自]②数える　③重要である　④（on ～）（～を）（全面的に）当てにする",
+        "en": "count down from ten to one",
+        "ja": "10から1まで数える",
+        "target_word": "count"
+    },
+    {
+        "id": "271-3",
+        "answer": "count",
+        "explanation": "[他] ①～を数える　[自]②数える　③重要である　④（on ～）（～を）（全面的に）当てにする",
+        "en": "First impressions really count.",
+        "ja": "第一印象は本当に重要だ．",
+        "target_word": "count"
+    },
+    {
+        "id": "271-4",
+        "answer": "count",
+        "explanation": "[他] ①～を数える　[自]②数える　③重要である　④（on ～）（～を）（全面的に）当てにする",
+        "en": "I’m counting on you.",
+        "ja": "（君を）当てにしているよ．",
+        "target_word": "count"
+    },
+    {
+        "id": "272-1",
+        "answer": "weigh",
+        "explanation": "[自] ①～の重さがある　[他] ②～の重さを量る　③～を（比較）検討する",
+        "en": "weigh 40 kilograms",
+        "ja": "40キロの重さだ",
+        "target_word": "weigh"
+    },
+    {
+        "id": "272-2",
+        "answer": "weigh",
+        "explanation": "[自] ①～の重さがある　[他] ②～の重さを量る　③～を（比較）検討する",
+        "en": "weigh myself on the scale",
+        "ja": "体重計で体重を計る",
+        "target_word": "weigh"
+    },
+    {
+        "id": "272-3",
+        "answer": "weigh",
+        "explanation": "[自] ①～の重さがある　[他] ②～の重さを量る　③～を（比較）検討する",
+        "en": "weigh （up） the benefits of the plan against the costs",
+        "ja": "費用に照らしてその計画の利点を検討する",
+        "target_word": "weigh"
+    },
+    {
+        "id": "273-1",
+        "answer": "quarter",
+        "explanation": "[名] ①4分の1，15分，25セント　②（都市のある特定な）地域",
+        "en": "a quarter to ten",
+        "ja": "10時15分前（9：45）",
+        "target_word": "quarter"
+    },
+    {
+        "id": "273-2",
+        "answer": "quarter",
+        "explanation": "[名] ①4分の1，15分，25セント　②（都市のある特定な）地域",
+        "en": "a student[business] quarter",
+        "ja": "学生［ビジネス］街",
+        "target_word": "quarter"
+    },
+    {
+        "id": "274-1",
+        "answer": "lot",
+        "explanation": "[名] ①（a － of ～）多くの～　②（副詞的に）（a －）とても　③（one’s）（～の）状況，運命　④（何らかの目的を持つ）土地",
+        "en": "a lot of dolphins",
+        "ja": "多くのイルカ",
+        "target_word": "lot"
+    },
+    {
+        "id": "274-2",
+        "answer": "lot",
+        "explanation": "[名] ①（a － of ～）多くの～　②（副詞的に）（a －）とても　③（one’s）（～の）状況，運命　④（何らかの目的を持つ）土地",
+        "en": "He has changed a lot.",
+        "ja": "彼はとても変わった．",
+        "target_word": "lot"
+    },
+    {
+        "id": "274-3",
+        "answer": "lot",
+        "explanation": "[名] ①（a － of ～）多くの～　②（副詞的に）（a －）とても　③（one’s）（～の）状況，運命　④（何らかの目的を持つ）土地",
+        "en": "work hard to improve my lot",
+        "ja": "私の置かれた状況を改善する努力をする",
+        "target_word": "lot"
+    },
+    {
+        "id": "274-4",
+        "answer": "lot",
+        "explanation": "[名] ①（a － of ～）多くの～　②（副詞的に）（a －）とても　③（one’s）（～の）状況，運命　④（何らかの目的を持つ）土地",
+        "en": "a parking lot",
+        "ja": "駐車場",
+        "target_word": "lot"
+    },
+    {
+        "id": "275-1",
+        "answer": "pile",
+        "explanation": "[名] ①積み重ね，山　②多量　[他] ③～を積み重ねる",
+        "en": "a pile of ironed shirts",
+        "ja": "アイロンをかけたシャツの山",
+        "target_word": "pile"
+    },
+    {
+        "id": "275-2",
+        "answer": "pile",
+        "explanation": "[名] ①積み重ね，山　②多量　[他] ③～を積み重ねる",
+        "en": "piles of work",
+        "ja": "山のような（多量の）仕事",
+        "target_word": "pile"
+    },
+    {
+        "id": "275-3",
+        "answer": "pile",
+        "explanation": "[名] ①積み重ね，山　②多量　[他] ③～を積み重ねる",
+        "en": "pile spaghetti onto her plate",
+        "ja": "彼女の皿にスパゲッティを盛る",
+        "target_word": "pile"
+    },
+    {
+        "id": "276-1",
+        "answer": "rate",
+        "explanation": "[名] ①割合，速さ　②（ホテルなどの一定の）料金　[他] ③～を評価する",
+        "en": "the declining birth rate",
+        "ja": "少子化（下がりつつある出生率）",
+        "target_word": "rate"
+    },
+    {
+        "id": "276-2",
+        "answer": "rate",
+        "explanation": "[名] ①割合，速さ　②（ホテルなどの一定の）料金　[他] ③～を評価する",
+        "en": "Our hotel offers special rates for children.",
+        "ja": "私どものホテルはお子様には特別料金が適用されます．",
+        "target_word": "rate"
+    },
+    {
+        "id": "276-3",
+        "answer": "rate",
+        "explanation": "[名] ①割合，速さ　②（ホテルなどの一定の）料金　[他] ③～を評価する",
+        "en": "rate him as a good poet",
+        "ja": "彼を良い詩人と評価する",
+        "target_word": "rate"
+    },
+    {
+        "id": "277-1",
+        "answer": "figure",
+        "explanation": "[名] ①数字　②人物　③スタイル，体つき　④図　[自] ⑤目立つ",
+        "en": "memorize a list of figures",
+        "ja": "数字の一覧を暗記する",
+        "target_word": "figure"
+    },
+    {
+        "id": "277-2",
+        "answer": "figure",
+        "explanation": "[名] ①数字　②人物　③スタイル，体つき　④図　[自] ⑤目立つ",
+        "en": "a political figure",
+        "ja": "政治家",
+        "target_word": "figure"
+    },
+    {
+        "id": "277-3",
+        "answer": "figure",
+        "explanation": "[名] ①数字　②人物　③スタイル，体つき　④図　[自] ⑤目立つ",
+        "en": "have a nice figure",
+        "ja": "スタイルがよい",
+        "target_word": "figure"
+    },
+    {
+        "id": "277-4",
+        "answer": "figure",
+        "explanation": "[名] ①数字　②人物　③スタイル，体つき　④図　[自] ⑤目立つ",
+        "en": "See Fig. 1.",
+        "ja": "図1を見なさい．",
+        "target_word": "figure"
+    },
+    {
+        "id": "277-5",
+        "answer": "figure",
+        "explanation": "[名] ①数字　②人物　③スタイル，体つき　④図　[自] ⑤目立つ",
+        "en": "Her name figures in history.",
+        "ja": "彼女の名前は歴史上有名だ．",
+        "target_word": "figure"
+    },
+    {
+        "id": "278",
+        "answer": "lack",
+        "explanation": "[名] ①（（a） － of ～）（～の）不足　[他] ②～を欠いている",
+        "en": "I am tired due to （a） lack of sleep.\n② He lacks confidence.\n（＝He is lacking in confidence.）",
+        "ja": "私は睡眠不足のため疲れている．\n② 彼は自信がない（自信を欠いている）．",
+        "target_word": "lack"
+    },
+    {
+        "id": "279-1",
+        "answer": "extra",
+        "explanation": "[形] ①余分な，追加の，臨時の　[名] ②余分な［追加された］もの",
+        "en": "an extra charge",
+        "ja": "追加料金",
+        "target_word": "extra"
+    },
+    {
+        "id": "279-2",
+        "answer": "extra",
+        "explanation": "[形] ①余分な，追加の，臨時の　[名] ②余分な［追加された］もの",
+        "en": "pay a little extra",
+        "ja": "少しだけ余分に（少しの余分を）払う",
+        "target_word": "extra"
+    },
+    {
+        "id": "280-1",
+        "answer": "ready",
+        "explanation": "[形] ①用意ができている　②（be ～ to do）進んで～する",
+        "en": "I’m not ready yet.",
+        "ja": "まだ準備ができていません．",
+        "target_word": "ready"
+    },
+    {
+        "id": "280-2",
+        "answer": "ready",
+        "explanation": "[形] ①用意ができている　②（be ～ to do）進んで～する",
+        "en": "be ready to help us",
+        "ja": "進んで私たちを助けてくれる",
+        "target_word": "ready"
+    },
+    {
+        "id": "281-1",
+        "answer": "prepare",
+        "explanation": "[他] ①～の準備をする，用意をする　[自] ②準備をする，用意をする　[形] ③（be \n－d to do）（～する）準備ができている",
+        "en": "prepare a meal",
+        "ja": "食事の準備をする",
+        "target_word": "prepare"
+    },
+    {
+        "id": "281-2",
+        "answer": "prepare",
+        "explanation": "[他] ①～の準備をする，用意をする　[自] ②準備をする，用意をする　[形] ③（be \n－d to do）（～する）準備ができている",
+        "en": "prepare for a powerful typhoon",
+        "ja": "大型の台風に備える",
+        "target_word": "prepare"
+    },
+    {
+        "id": "281-3",
+        "answer": "prepare",
+        "explanation": "[他] ①～の準備をする，用意をする　[自] ②準備をする，用意をする　[形] ③（be \n－d to do）（～する）準備ができている",
+        "en": "I am prepared to accept your advice.",
+        "ja": "あなたの忠告をよろこんで受け入れます（受け入れる準備ができています）．",
+        "target_word": "prepare"
+    },
+    {
+        "id": "282-1",
+        "answer": "adjust",
+        "explanation": "[自] ①（to ～）（～に）慣れる　[他] ②～を調整する",
+        "en": "adjust to a new school life",
+        "ja": "新しい学校生活に慣れる",
+        "target_word": "adjust"
+    },
+    {
+        "id": "282-2",
+        "answer": "adjust",
+        "explanation": "[自] ①（to ～）（～に）慣れる　[他] ②～を調整する",
+        "en": "adjust the temperature on the air conditioner",
+        "ja": "エアコンの温度を調整する",
+        "target_word": "adjust"
+    },
+    {
+        "id": "283-1",
+        "answer": "apply",
+        "explanation": "[自] ①（to ～）（～に）当てはまる　②（for ～）（～に）申し込む　[他] ③～を当てはめる，応用する　④（薬，口紅など）を塗る",
+        "en": "That rule applies to students.",
+        "ja": "その規則は学生に適用される．",
+        "target_word": "apply"
+    },
+    {
+        "id": "283-2",
+        "answer": "apply",
+        "explanation": "[自] ①（to ～）（～に）当てはまる　②（for ～）（～に）申し込む　[他] ③～を当てはめる，応用する　④（薬，口紅など）を塗る",
+        "en": "apply for a passport",
+        "ja": "パスポートを申請する",
+        "target_word": "apply"
+    },
+    {
+        "id": "283-3",
+        "answer": "apply",
+        "explanation": "[自] ①（to ～）（～に）当てはまる　②（for ～）（～に）申し込む　[他] ③～を当てはめる，応用する　④（薬，口紅など）を塗る",
+        "en": "apply the technology to a wide range of fields",
+        "ja": "さまざまな分野にその技術を応用する",
+        "target_word": "apply"
+    },
+    {
+        "id": "283-4",
+        "answer": "apply",
+        "explanation": "[自] ①（to ～）（～に）当てはまる　②（for ～）（～に）申し込む　[他] ③～を当てはめる，応用する　④（薬，口紅など）を塗る",
+        "en": "apply enough sunscreen to my face",
+        "ja": "顔に十分な日焼け止めクリームを塗る",
+        "target_word": "apply"
+    },
+    {
+        "id": "284-1",
+        "answer": "suit",
+        "explanation": "[他] ①（人）に適している，好都合だ　②（服装，色が人）に似合う　[名] ③訴訟（＝lawsuit）　④ スーツ",
+        "en": "What time suits you best?",
+        "ja": "何時が（あなたに）ご都合がいいですか．",
+        "target_word": "suit"
+    },
+    {
+        "id": "284-2",
+        "answer": "suit",
+        "explanation": "[他] ①（人）に適している，好都合だ　②（服装，色が人）に似合う　[名] ③訴訟（＝lawsuit）　④ スーツ",
+        "en": "That tie suits you.",
+        "ja": "そのネクタイは君に似合う．",
+        "target_word": "suit"
+    },
+    {
+        "id": "284-3",
+        "answer": "suit",
+        "explanation": "[他] ①（人）に適している，好都合だ　②（服装，色が人）に似合う　[名] ③訴訟（＝lawsuit）　④ スーツ",
+        "en": "file a suit against her",
+        "ja": "彼女を告訴する",
+        "target_word": "suit"
+    },
+    {
+        "id": "284-4",
+        "answer": "suit",
+        "explanation": "[他] ①（人）に適している，好都合だ　②（服装，色が人）に似合う　[名] ③訴訟（＝lawsuit）　④ スーツ",
+        "en": "a three-piece suit",
+        "ja": "スリーピースのスーツ",
+        "target_word": "suit"
+    },
+    {
+        "id": "285-1",
+        "answer": "case",
+        "explanation": "[名] ①場合　②（the －）事実　③（犯罪）事件　④症例　⑤（make a －）主張（する）",
+        "en": "In some cases, honesty does not pay.",
+        "ja": "正直が割に合わない場合もある．",
+        "target_word": "case"
+    },
+    {
+        "id": "285-2",
+        "answer": "case",
+        "explanation": "[名] ①場合　②（the －）事実　③（犯罪）事件　④症例　⑤（make a －）主張（する）",
+        "en": "This is the case with humans.",
+        "ja": "これは人間にも当てはまる（人間にとっても事実である）．",
+        "target_word": "case"
+    },
+    {
+        "id": "285-3",
+        "answer": "case",
+        "explanation": "[名] ①場合　②（the －）事実　③（犯罪）事件　④症例　⑤（make a －）主張（する）",
+        "en": "a murder case",
+        "ja": "殺人事件",
+        "target_word": "case"
+    },
+    {
+        "id": "285-4",
+        "answer": "case",
+        "explanation": "[名] ①場合　②（the －）事実　③（犯罪）事件　④症例　⑤（make a －）主張（する）",
+        "en": "new cases of Ebola",
+        "ja": "エボラ出血熱の新たな症例",
+        "target_word": "case"
+    },
+    {
+        "id": "285-5",
+        "answer": "case",
+        "explanation": "[名] ①場合　②（the －）事実　③（犯罪）事件　④症例　⑤（make a －）主張（する）",
+        "en": "make a case before the judge",
+        "ja": "裁判官の前で言い分を述べる",
+        "target_word": "case"
+    },
+    {
+        "id": "286-1",
+        "answer": "scene",
+        "explanation": "[名] ①（劇，小説などの）場面　②（事故）現場　③（the ～ scene）～（業）界",
+        "en": "a love scene",
+        "ja": "ラブシーン",
+        "target_word": "scene"
+    },
+    {
+        "id": "286-2",
+        "answer": "scene",
+        "explanation": "[名] ①（劇，小説などの）場面　②（事故）現場　③（the ～ scene）～（業）界",
+        "en": "Police cars rushed to the scene.",
+        "ja": "パトカーが現場に急行した．",
+        "target_word": "scene"
+    },
+    {
+        "id": "286-3",
+        "answer": "scene",
+        "explanation": "[名] ①（劇，小説などの）場面　②（事故）現場　③（the ～ scene）～（業）界",
+        "en": "the American music scene",
+        "ja": "アメリカの音楽業界",
+        "target_word": "scene"
+    },
+    {
+        "id": "287-1",
+        "answer": "chance",
+        "explanation": "[名] ①（to do）（～する）機会　②（of ～ / that S V）（～の / ～する）可能性",
+        "en": "a chance to play the lead",
+        "ja": "主役を演じる機会",
+        "target_word": "chance"
+    },
+    {
+        "id": "287-2",
+        "answer": "chance",
+        "explanation": "[名] ①（to do）（～する）機会　②（of ～ / that S V）（～の / ～する）可能性",
+        "en": "There is little chance of his winning.",
+        "ja": "彼が勝つ可能性はほとんどない．",
+        "target_word": "chance"
+    },
+    {
+        "id": "288",
+        "answer": "opportunity",
+        "explanation": "[名] （よい）機会，好機",
+        "en": "have a golden opportunity to speak English",
+        "ja": "英語を話す絶好の機会を持つ",
+        "target_word": "opportunity"
+    },
+    {
+        "id": "289-1",
+        "answer": "experience",
+        "explanation": "[名] ①経験　②（個々の）体験　[他] ③～を経験する",
+        "en": "learn from experience",
+        "ja": "経験から学ぶ",
+        "target_word": "experience"
+    },
+    {
+        "id": "289-2",
+        "answer": "experience",
+        "explanation": "[名] ①経験　②（個々の）体験　[他] ③～を経験する",
+        "en": "the bitter experience of losing in the first round",
+        "ja": "初戦敗退という苦い経験",
+        "target_word": "experience"
+    },
+    {
+        "id": "289-3",
+        "answer": "experience",
+        "explanation": "[名] ①経験　②（個々の）体験　[他] ③～を経験する",
+        "en": "experience many hardships",
+        "ja": "多くの困難を経験する",
+        "target_word": "experience"
+    },
+    {
+        "id": "290-1",
+        "answer": "time",
+        "explanation": "[名] ①（漠然とした）時間　②（ある長さの）時間　③回数　④倍　⑤（－s）情勢，時代　⑥（接続詞的に（the） next －）次に～するとき",
+        "en": "If you have time, help me.",
+        "ja": "時間があれば手伝ってよ．",
+        "target_word": "time"
+    },
+    {
+        "id": "290-2",
+        "answer": "time",
+        "explanation": "[名] ①（漠然とした）時間　②（ある長さの）時間　③回数　④倍　⑤（－s）情勢，時代　⑥（接続詞的に（the） next －）次に～するとき",
+        "en": "wait for a long time",
+        "ja": "長時間待つ",
+        "target_word": "time"
+    },
+    {
+        "id": "290-3",
+        "answer": "time",
+        "explanation": "[名] ①（漠然とした）時間　②（ある長さの）時間　③回数　④倍　⑤（－s）情勢，時代　⑥（接続詞的に（the） next －）次に～するとき",
+        "en": "change jobs many times",
+        "ja": "職を何回も変える",
+        "target_word": "time"
+    },
+    {
+        "id": "290-4",
+        "answer": "time",
+        "explanation": "[名] ①（漠然とした）時間　②（ある長さの）時間　③回数　④倍　⑤（－s）情勢，時代　⑥（接続詞的に（the） next －）次に～するとき",
+        "en": "This one is three times as large as that one.",
+        "ja": "これはあれの3倍の大きさだ．",
+        "target_word": "time"
+    },
+    {
+        "id": "290-5",
+        "answer": "time",
+        "explanation": "[名] ①（漠然とした）時間　②（ある長さの）時間　③回数　④倍　⑤（－s）情勢，時代　⑥（接続詞的に（the） next －）次に～するとき",
+        "en": "keep up with the times",
+        "ja": "時代についていく",
+        "target_word": "time"
+    },
+    {
+        "id": "290-6",
+        "answer": "time",
+        "explanation": "[名] ①（漠然とした）時間　②（ある長さの）時間　③回数　④倍　⑤（－s）情勢，時代　⑥（接続詞的に（the） next －）次に～するとき",
+        "en": "（the） next time you come here",
+        "ja": "あなたが次にここに来るとき",
+        "target_word": "time"
+    },
+    {
+        "id": "291-1",
+        "answer": "spring",
+        "explanation": "[名] ①春　②泉，温泉　[自] ③飛び出る，突然出現する",
+        "en": "Spring has come.",
+        "ja": "春が来た．",
+        "target_word": "spring"
+    },
+    {
+        "id": "291-2",
+        "answer": "spring",
+        "explanation": "[名] ①春　②泉，温泉　[自] ③飛び出る，突然出現する",
+        "en": "a hot spring resort",
+        "ja": "温泉（地）",
+        "target_word": "spring"
+    },
+    {
+        "id": "291-3",
+        "answer": "spring",
+        "explanation": "[名] ①春　②泉，温泉　[自] ③飛び出る，突然出現する",
+        "en": "spring out of bed",
+        "ja": "ベッドから飛び起きる",
+        "target_word": "spring"
+    },
+    {
+        "id": "292-1",
+        "answer": "minute",
+        "explanation": "[名] ①（時間の）分　②（a －）ちょっとの間　③（－s）議事録〈まれ〉　[形] ④とても小さい，細かい　[接] ⑤（the －）～するとすぐに",
+        "en": "The station is ten minutes’[a ten-minute] walk from here.",
+        "ja": "駅はここから歩いて10分です．",
+        "target_word": "minute"
+    },
+    {
+        "id": "292-2",
+        "answer": "minute",
+        "explanation": "[名] ①（時間の）分　②（a －）ちょっとの間　③（－s）議事録〈まれ〉　[形] ④とても小さい，細かい　[接] ⑤（the －）～するとすぐに",
+        "en": "Wait a minute.",
+        "ja": "ちょっと待ってください．",
+        "target_word": "minute"
+    },
+    {
+        "id": "292-3",
+        "answer": "minute",
+        "explanation": "[名] ①（時間の）分　②（a －）ちょっとの間　③（－s）議事録〈まれ〉　[形] ④とても小さい，細かい　[接] ⑤（the －）～するとすぐに",
+        "en": "take the minutes of the meeting",
+        "ja": "会議の議事録を取る",
+        "target_word": "minute"
+    },
+    {
+        "id": "292-4",
+        "answer": "minute",
+        "explanation": "[名] ①（時間の）分　②（a －）ちょっとの間　③（－s）議事録〈まれ〉　[形] ④とても小さい，細かい　[接] ⑤（the －）～するとすぐに",
+        "en": "a minute fraction",
+        "ja": "ごく小さな破片",
+        "target_word": "minute"
+    },
+    {
+        "id": "292-5",
+        "answer": "minute",
+        "explanation": "[名] ①（時間の）分　②（a －）ちょっとの間　③（－s）議事録〈まれ〉　[形] ④とても小さい，細かい　[接] ⑤（the －）～するとすぐに",
+        "en": "We stopped talking the minute he came in.",
+        "ja": "彼が入ってきた瞬間に私たちは話を止めた．",
+        "target_word": "minute"
+    },
+    {
+        "id": "293-1",
+        "answer": "age",
+        "explanation": "[名] ①年齢　②時代　③（－s）長い間\n[自] ④高齢化する",
+        "en": "a man past middle age",
+        "ja": "中年過ぎの男性",
+        "target_word": "age"
+    },
+    {
+        "id": "293-2",
+        "answer": "age",
+        "explanation": "[名] ①年齢　②時代　③（－s）長い間\n[自] ④高齢化する",
+        "en": "in the Middle Ages",
+        "ja": "中世において",
+        "target_word": "age"
+    },
+    {
+        "id": "293-3",
+        "answer": "age",
+        "explanation": "[名] ①年齢　②時代　③（－s）長い間\n[自] ④高齢化する",
+        "en": "It’s been ages since I saw you last.",
+        "ja": "久しぶり（最後にあなたに会ってから長い間経つ）．",
+        "target_word": "age"
+    },
+    {
+        "id": "293-4",
+        "answer": "age",
+        "explanation": "[名] ①年齢　②時代　③（－s）長い間\n[自] ④高齢化する",
+        "en": "an aging society",
+        "ja": "高齢化社会",
+        "target_word": "age"
+    },
+    {
+        "id": "294-1",
+        "answer": "generation",
+        "explanation": "[名] ①世代　②生み出すこと　③発電",
+        "en": "a generation gap",
+        "ja": "世代間格差",
+        "target_word": "generation"
+    },
+    {
+        "id": "294-2",
+        "answer": "generation",
+        "explanation": "[名] ①世代　②生み出すこと　③発電",
+        "en": "the generation of wealth",
+        "ja": "富を生み出すこと",
+        "target_word": "generation"
+    },
+    {
+        "id": "294-3",
+        "answer": "generation",
+        "explanation": "[名] ①世代　②生み出すこと　③発電",
+        "en": "hydropower generation",
+        "ja": "水力発電",
+        "target_word": "generation"
+    },
+    {
+        "id": "295",
+        "answer": "anniversary",
+        "explanation": "[名] 記念日　",
+        "en": "celebrate our school’s 100th anniversary",
+        "ja": "我が校の創立100周年を祝う",
+        "target_word": "anniversary"
+    },
+    {
+        "id": "296",
+        "answer": "recently",
+        "explanation": "[副] 最近，近ごろ",
+        "en": "I moved to this city just recently.",
+        "ja": "最近この市に引っ越して来ました．",
+        "target_word": "recently"
+    },
+    {
+        "id": "297-1",
+        "answer": "used",
+        "explanation": "[助] ①（to ～）以前は～だった，よく～したものだ　[形] ②（be － to doing）（～することに）慣れている　③中古の",
+        "en": "I used to drive to work, but nowadays I take the train.",
+        "ja": "以前は車で仕事に行っていたが，今は電車を利用する．",
+        "target_word": "used"
+    },
+    {
+        "id": "297-2",
+        "answer": "used",
+        "explanation": "[助] ①（to ～）以前は～だった，よく～したものだ　[形] ②（be － to doing）（～することに）慣れている　③中古の",
+        "en": "be used to getting up early",
+        "ja": "早起きに慣れている",
+        "target_word": "used"
+    },
+    {
+        "id": "297-3",
+        "answer": "used",
+        "explanation": "[助] ①（to ～）以前は～だった，よく～したものだ　[形] ②（be － to doing）（～することに）慣れている　③中古の",
+        "en": "a used car",
+        "ja": "中古車",
+        "target_word": "used"
+    },
+    {
+        "id": "298-1",
+        "answer": "early",
+        "explanation": "[副] ①（時間，時期が）早く，初期に　②（予定より）早く　[形] ③早い，初期の",
+        "en": "early in the morning",
+        "ja": "朝早くに",
+        "target_word": "early"
+    },
+    {
+        "id": "298-2",
+        "answer": "early",
+        "explanation": "[副] ①（時間，時期が）早く，初期に　②（予定より）早く　[形] ③早い，初期の",
+        "en": "The bus came three minutes earlier than usual.",
+        "ja": "そのバスはいつもより3分早く来た．",
+        "target_word": "early"
+    },
+    {
+        "id": "298-3",
+        "answer": "early",
+        "explanation": "[副] ①（時間，時期が）早く，初期に　②（予定より）早く　[形] ③早い，初期の",
+        "en": "the early works of Murakami Haruki",
+        "ja": "村上春樹の初期の作品",
+        "target_word": "early"
+    },
+    {
+        "id": "299-1",
+        "answer": "first",
+        "explanation": "[形] ①第1 の　②（for the － time）初めて　[副] ③初めて　④（文頭で）まず第1 に（＝firstly）　[名] ⑤（at －）最初のうちは",
+        "en": "win first prize",
+        "ja": "1等賞をとる",
+        "target_word": "first"
+    },
+    {
+        "id": "299-2",
+        "answer": "first",
+        "explanation": "[形] ①第1 の　②（for the － time）初めて　[副] ③初めて　④（文頭で）まず第1 に（＝firstly）　[名] ⑤（at －）最初のうちは",
+        "en": "I went up Tokyo Tower for the first time in my life.",
+        "ja": "生まれて初めて東京タワーにのぼった．",
+        "target_word": "first"
+    },
+    {
+        "id": "299-3",
+        "answer": "first",
+        "explanation": "[形] ①第1 の　②（for the － time）初めて　[副] ③初めて　④（文頭で）まず第1 に（＝firstly）　[名] ⑤（at －）最初のうちは",
+        "en": "When I first met her, she was a student.",
+        "ja": "彼女と初めて会ったとき，彼女は学生だった．",
+        "target_word": "first"
+    },
+    {
+        "id": "299-4",
+        "answer": "first",
+        "explanation": "[形] ①第1 の　②（for the － time）初めて　[副] ③初めて　④（文頭で）まず第1 に（＝firstly）　[名] ⑤（at －）最初のうちは",
+        "en": "First, e-books are less expensive.",
+        "ja": "まず第1に，電子書籍のほうが安い．",
+        "target_word": "first"
+    },
+    {
+        "id": "299-5",
+        "answer": "first",
+        "explanation": "[形] ①第1 の　②（for the － time）初めて　[副] ③初めて　④（文頭で）まず第1 に（＝firstly）　[名] ⑤（at －）最初のうちは",
+        "en": "At first I thought it was a joke, but later I realized it was true.",
+        "ja": "最初は冗談かと思ったが，後で事実だとわかった．",
+        "target_word": "first"
+    },
+    {
+        "id": "300",
+        "answer": "latest",
+        "explanation": "[形] （the －）最新の",
+        "en": "follow the latest fashions",
+        "ja": "最新のファッションを追う",
+        "target_word": "latest"
+    },
+    {
+        "id": "301-1",
+        "answer": "modern",
+        "explanation": "[形] ①現代の　②近代的な",
+        "en": "in modern society",
+        "ja": "現代社会では",
+        "target_word": "modern"
+    },
+    {
+        "id": "301-2",
+        "answer": "modern",
+        "explanation": "[形] ①現代の　②近代的な",
+        "en": "a bright, modern office",
+        "ja": "明るい近代的なオフィス",
+        "target_word": "modern"
+    },
+    {
+        "id": "302-1",
+        "answer": "ancient",
+        "explanation": "[形] ①古代の　②古びた",
+        "en": "in ancient times",
+        "ja": "大昔に",
+        "target_word": "ancient"
+    },
+    {
+        "id": "302-2",
+        "answer": "ancient",
+        "explanation": "[形] ①古代の　②古びた",
+        "en": "an ancient, worn-out coat",
+        "ja": "古びてすり切れたコート",
+        "target_word": "ancient"
+    },
+    {
+        "id": "303-1",
+        "answer": "spend",
+        "explanation": "[他] ①（時間）を費やす　②（お金）を使う",
+        "en": "spend most of my time reading[in my room, with my family]",
+        "ja": "時間の大半を読書に［部屋の中で，家族と一緒に］費やす［過ごす］",
+        "target_word": "spend"
+    },
+    {
+        "id": "303-2",
+        "answer": "spend",
+        "explanation": "[他] ①（時間）を費やす　②（お金）を使う",
+        "en": "spend too much money on clothes",
+        "ja": "洋服にお金をかけすぎる",
+        "target_word": "spend"
+    },
+    {
+        "id": "304-1",
+        "answer": "delay",
+        "explanation": "[他] ①～を遅らせる　[名] ②遅延，延期",
+        "en": "Our train was delayed （for） two hours.",
+        "ja": "私たちが乗った列車が2時間遅れた．",
+        "target_word": "delay"
+    },
+    {
+        "id": "304-2",
+        "answer": "delay",
+        "explanation": "[他] ①～を遅らせる　[名] ②遅延，延期",
+        "en": "without delay",
+        "ja": "遅れることなく",
+        "target_word": "delay"
+    },
+    {
+        "id": "305",
+        "answer": "borrow",
+        "explanation": "[他] ～を借りる",
+        "en": "borrow two books from the library",
+        "ja": "図書館から2冊の本を借りる",
+        "target_word": "borrow"
+    },
+    {
+        "id": "306-1",
+        "answer": "lend",
+        "explanation": "[他] ①（無償で）～を貸す　②（銀行が利子をつけて）を貸す",
+        "en": "Could you lend me 10,000 yen?",
+        "ja": "1万円貸してもらえませんか．",
+        "target_word": "lend"
+    },
+    {
+        "id": "306-2",
+        "answer": "lend",
+        "explanation": "[他] ①（無償で）～を貸す　②（銀行が利子をつけて）を貸す",
+        "en": "How much will the bank lend me?",
+        "ja": "銀行はいくら貸してくれるだろうか．",
+        "target_word": "lend"
+    },
+    {
+        "id": "307-1",
+        "answer": "rent",
+        "explanation": "[他] ①～を借りる　②（A to B）（A）を（Bに）賃貸しする　[名] ③家賃，賃貸料，使用料　",
+        "en": "rent a car for six hours",
+        "ja": "6 時間，車を借りる",
+        "target_word": "rent"
+    },
+    {
+        "id": "307-2",
+        "answer": "rent",
+        "explanation": "[他] ①～を借りる　②（A to B）（A）を（Bに）賃貸しする　[名] ③家賃，賃貸料，使用料　",
+        "en": "She rents out three rooms to students.",
+        "ja": "彼女は学生に3部屋を賃貸ししている．",
+        "target_word": "rent"
+    },
+    {
+        "id": "307-3",
+        "answer": "rent",
+        "explanation": "[他] ①～を借りる　②（A to B）（A）を（Bに）賃貸しする　[名] ③家賃，賃貸料，使用料　",
+        "en": "pay a high[low] rent",
+        "ja": "高い［安い］家賃を払う",
+        "target_word": "rent"
+    },
+    {
+        "id": "308",
+        "answer": "provide",
+        "explanation": "[他] （A with B）（AにB）を供給する，与える",
+        "en": "provide students with an opportunity to study in the U.K.",
+        "ja": "イギリス留学の機会を学生に与える",
+        "target_word": "provide"
+    },
+    {
+        "id": "309-1",
+        "answer": "board",
+        "explanation": "[名] ①（細長い）板　②（幹部などによる）委員会　[他] ③～に乗る",
+        "en": "drill a hole through a board",
+        "ja": "板にドリルで穴を開ける",
+        "target_word": "board"
+    },
+    {
+        "id": "309-2",
+        "answer": "board",
+        "explanation": "[名] ①（細長い）板　②（幹部などによる）委員会　[他] ③～に乗る",
+        "en": "a board of education",
+        "ja": "教育委員会",
+        "target_word": "board"
+    },
+    {
+        "id": "309-3",
+        "answer": "board",
+        "explanation": "[名] ①（細長い）板　②（幹部などによる）委員会　[他] ③～に乗る",
+        "en": "board a bus",
+        "ja": "バスに乗る",
+        "target_word": "board"
+    },
+    {
+        "id": "310",
+        "answer": "garbage",
+        "explanation": "[名] ごみ〈不可算〉",
+        "en": "plastic garbage bags",
+        "ja": "ビニールのごみ袋",
+        "target_word": "garbage"
+    },
+    {
+        "id": "311-1",
+        "answer": "item",
+        "explanation": "[名] ①品物　②（集合名詞を数えるときに用いる）…点，個　③（リストなどの）項目",
+        "en": "buy items on sale",
+        "ja": "バーゲン品を買う",
+        "target_word": "item"
+    },
+    {
+        "id": "311-2",
+        "answer": "item",
+        "explanation": "[名] ①品物　②（集合名詞を数えるときに用いる）…点，個　③（リストなどの）項目",
+        "en": "a news item about the village",
+        "ja": "その村に関する（1つの）ニュース",
+        "target_word": "item"
+    },
+    {
+        "id": "311-3",
+        "answer": "item",
+        "explanation": "[名] ①品物　②（集合名詞を数えるときに用いる）…点，個　③（リストなどの）項目",
+        "en": "check all the items on the list",
+        "ja": "リストのすべての項目を確認する",
+        "target_word": "item"
+    },
+    {
+        "id": "312-1",
+        "answer": "wheel",
+        "explanation": "[名] ①車輪　②（the －）ハンドル　[他] ③（車輪のついたもの）を動かす",
+        "en": "the front wheel of my bicycle",
+        "ja": "自転車の前輪",
+        "target_word": "wheel"
+    },
+    {
+        "id": "312-2",
+        "answer": "wheel",
+        "explanation": "[名] ①車輪　②（the －）ハンドル　[他] ③（車輪のついたもの）を動かす",
+        "en": "sit at the wheel",
+        "ja": "運転する（ハンドルの所に座る）",
+        "target_word": "wheel"
+    },
+    {
+        "id": "312-3",
+        "answer": "wheel",
+        "explanation": "[名] ①車輪　②（the －）ハンドル　[他] ③（車輪のついたもの）を動かす",
+        "en": "wheel a cart",
+        "ja": "カートを動かす",
+        "target_word": "wheel"
+    },
+    {
+        "id": "313-1",
+        "answer": "note",
+        "explanation": "[名] ①メモ　②〈英〉紙幣　[他] ③（that S V）（～ということ）を指摘する　④ ～に注意を払う",
+        "en": "take notes in class",
+        "ja": "授業中にメモをとる",
+        "target_word": "note"
+    },
+    {
+        "id": "313-2",
+        "answer": "note",
+        "explanation": "[名] ①メモ　②〈英〉紙幣　[他] ③（that S V）（～ということ）を指摘する　④ ～に注意を払う",
+        "en": "a 50-pound note",
+        "ja": "50ポンド紙幣",
+        "target_word": "note"
+    },
+    {
+        "id": "313-3",
+        "answer": "note",
+        "explanation": "[名] ①メモ　②〈英〉紙幣　[他] ③（that S V）（～ということ）を指摘する　④ ～に注意を払う",
+        "en": "note that we face a real challenge",
+        "ja": "私たちは大きな難題に直面していると指摘する",
+        "target_word": "note"
+    },
+    {
+        "id": "313-4",
+        "answer": "note",
+        "explanation": "[名] ①メモ　②〈英〉紙幣　[他] ③（that S V）（～ということ）を指摘する　④ ～に注意を払う",
+        "en": "Please note that the homework is due on Friday.",
+        "ja": "宿題の締め切りは金曜日だということを忘れずに注意してください．",
+        "target_word": "note"
+    }
+];
+
+        let activeSentenceElement = null;
+        let selectedSentences = new Set();
+
+        const sentenceList = document.getElementById('sentence-list');
+        const startQuizBtn = document.getElementById('start-quiz-btn');
+        const messageModal = document.getElementById('message-modal');
+        const messageContent = document.getElementById('message-content');
+        const quizModal = document.getElementById('quiz-modal');
+        const closeQuizBtn = document.getElementById('close-quiz-btn');
+        const quizContent = document.getElementById('quiz-content');
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const pdfModal = document.getElementById('pdf-modal');
+        const openPdfModalBtn = document.getElementById('open-pdf-modal-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        // --- Voice Synthesis Setup ---
+        if (typeof speechSynthesis !== 'undefined') {
+            speechSynthesis.getVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = () => {
+                    speechSynthesis.getVoices();
+                };
+            }
+        }
+
+        function getBestEnglishVoice(voices) {
+            const excludedVoices = [
+                'albert', 'bad news', 'bells', 'boing', 'bubbles', 'cellos', 
+                'deranged', 'good news', 'hysterical', 'pipe organ', 'trinoids', 
+                'whisper', 'zarvox', 'fred', 'juniper', 'ralph', 'kathy', 'siri'
+            ];
+            
+            const englishVoices = voices.filter(v => {
+                const lang = v.lang.toLowerCase();
+                const name = v.name.toLowerCase();
+                return lang.startsWith('en') && !excludedVoices.some(ex => name.includes(ex));
+            });
+
+            if (englishVoices.length === 0) {
+                return voices.find(v => v.lang.toLowerCase().startsWith('en')) || null;
+            }
+
+            const isGoogle = v => v.name.toLowerCase().includes('google');
+            const isSamantha = v => v.name.toLowerCase().includes('samantha');
+            const isDaniel = v => v.name.toLowerCase().includes('daniel');
+            const isPremium = v => v.name.toLowerCase().includes('premium') || v.name.toLowerCase().includes('enhanced') || v.name.toLowerCase().includes('natural');
+            const isUS = v => v.lang.toLowerCase() === 'en-us';
+            const isGB = v => v.lang.toLowerCase() === 'en-gb';
+
+            let voice = englishVoices.find(v => isUS(v) && isGoogle(v));
+            if (voice) return voice;
+
+            voice = englishVoices.find(v => isGB(v) && isGoogle(v));
+            if (voice) return voice;
+
+            voice = englishVoices.find(isGoogle);
+            if (voice) return voice;
+
+            voice = englishVoices.find(isSamantha);
+            if (voice) return voice;
+
+            voice = englishVoices.find(isDaniel);
+            if (voice) return voice;
+
+            voice = englishVoices.find(v => isUS(v) && isPremium(v));
+            if (voice) return voice;
+
+            voice = englishVoices.find(isPremium);
+            if (voice) return voice;
+
+            voice = englishVoices.find(v => isUS(v));
+            if (voice) return voice;
+
+            voice = englishVoices.find(v => isGB(v));
+            if (voice) return voice;
+
+            return englishVoices[0];
+        }
+
+        // --- Core Functions ---
+        function formatEnglishSentence(item) {
+            const enSentence = item.en;
+            const answer = item.answer;
+            const blank = '__________';
+
+            if (!enSentence) return `<span class="answer-span text-3xl">${answer}</span>`;
+
+            let baseWord = answer.replace(/[～AB]/g, '').replace(/（.*?）/g, '').replace(/\(.*?\)/g, '').trim();
+            let searchWords = [];
+            
+            if (baseWord.length > 0) searchWords.push(baseWord);
+            
+            if (baseWord === 'oneself') {
+                searchWords.push('myself', 'yourself', 'himself', 'herself', 'itself', 'ourselves', 'yourselves', 'themselves');
+            } else {
+                const words = baseWord.split(/\s+/).filter(w => w.length > 0 && /^[a-zA-Z]+$/.test(w));
+                if (words.length > 0) {
+                    let w = words[0].toLowerCase();
+                    searchWords.push(w);
+                    searchWords.push(w + 's', w + 'es', w + 'd', w + 'ed', w + 'ing');
+                    if (w.endsWith('e')) searchWords.push(w.slice(0, -1) + 'ing');
+                    if (w.endsWith('y')) searchWords.push(w.slice(0, -1) + 'ies', w.slice(0, -1) + 'ied');
+                    if (w.length > 2) {
+                        const last = w.slice(-1);
+                        searchWords.push(w + last + 'ed', w + last + 'ing');
+                    }
+                    
+                    const irregulars = {
+                        'write': ['wrote', 'written'], 'speak': ['spoke', 'spoken'], 'say': ['said'], 'tell': ['told'],
+                        'see': ['saw', 'seen'], 'hear': ['heard'], 'take': ['took', 'taken'], 'meet': ['met'],
+                        'feel': ['felt'], 'think': ['thought'], 'know': ['knew', 'known'], 'choose': ['chose', 'chosen'],
+                        'leave': ['left'], 'make': ['made'], 'catch': ['caught'], 'find': ['found'], 'buy': ['bought'],
+                        'bring': ['brought'], 'teach': ['taught'], 'understand': ['understood'], 'build': ['built'],
+                        'send': ['sent'], 'spend': ['spent'], 'lose': ['lost'], 'sleep': ['slept'], 'keep': ['kept'],
+                        'do': ['did', 'done'], 'go': ['went', 'gone'], 'come': ['came'], 'run': ['ran'],
+                        'give': ['gave', 'given'], 'get': ['got', 'gotten'], 'forget': ['forgot', 'forgotten'],
+                        'begin': ['began', 'begun'], 'drink': ['drank', 'drunk'], 'swim': ['swam', 'swum'],
+                        'sing': ['sang', 'sung'], 'ring': ['rang', 'rung'], 'drive': ['drove', 'driven'],
+                        'ride': ['rode', 'ridden'], 'eat': ['ate', 'eaten'], 'fall': ['fell', 'fallen'],
+                        'hold': ['held'], 'stand': ['stood'], 'sit': ['sat'], 'win': ['won'], 'pay': ['paid'],
+                        'sell': ['sold'], 'break': ['broke', 'broken'], 'wear': ['wore', 'worn'],
+                        'grow': ['grew', 'grown'], 'fly': ['flew', 'flown'], 'blow': ['blew', 'blown'],
+                        'draw': ['drew', 'drawn'], 'throw': ['threw', 'thrown'], 'hide': ['hid', 'hidden'],
+                        'fight': ['fought'], 'feed': ['fed'], 'strike': ['struck'], 'wake': ['woke', 'woken'],
+                        'bear': ['bore', 'born'], 'beat': ['beat', 'beaten'], 'bind': ['bound'], 'bleed': ['bled'],
+                        'breed': ['bred'], 'tear': ['tore', 'torn'], 'sweep': ['swept'], 'weep': ['wept'],
+                        'bend': ['bent'], 'lend': ['lent'], 'mean': ['meant'], 'lead': ['led'], 'shoot': ['shot']
+                    };
+                    
+                    if (irregulars[w]) searchWords.push(...irregulars[w]);
+                }
+            }
+
+            for (let actualWord of searchWords) {
+                if (!actualWord) continue;
+                try {
+                    const regex = new RegExp(`\\b${actualWord}\\b`, 'gi');
+                    if (regex.test(enSentence)) {
+                        return enSentence.replace(regex, match => `<span class="answer-span">${match}</span><span class="underline-span">${blank}</span>`);
+                    }
+                } catch (e) { }
+            }
+            
+            for (let actualWord of searchWords) {
+                if (!actualWord) continue;
+                if (enSentence.toLowerCase().includes(actualWord.toLowerCase())) {
+                    const index = enSentence.toLowerCase().indexOf(actualWord.toLowerCase());
+                    if (index !== -1) {
+                        const originalWord = enSentence.substring(index, index + actualWord.length);
+                        return enSentence.substring(0, index) +
+                            `<span class="answer-span">${originalWord}</span><span class="underline-span">${blank}</span>` +
+                            enSentence.substring(index + actualWord.length);
+                    }
+                }
+            }
+
+            return enSentence;
+        }
+
+        function renderChapter() {
+            sentenceList.innerHTML = '';
+            chapterData.forEach(item => {
+                const sentenceDiv = document.createElement('div');
+                sentenceDiv.className = 'sentence-item p-4 border border-gray-200 rounded-lg bg-white transition-shadow duration-300 hover:shadow-md';
+                sentenceDiv.dataset.id = item.id;
+                sentenceDiv.dataset.fullSentence = item.en;
+
+                const englishSentenceHtml = formatEnglishSentence(item);
+
+                sentenceDiv.innerHTML = `
+        <div class="flex items-start space-x-4">
+            <input type="checkbox" class="sentence-checkbox mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-id="${item.id}">
+            <span class="text-sm font-bold text-gray-400 w-16">${item.id}</span>
+            <div class="flex-1 cursor-pointer">
+                \${item.ja ? `<p class="mb-2 text-gray-700">\${item.ja}</p>` : ""}
+                <p class="font-english">${englishSentenceHtml}</p>
+                
+                <div class="action-buttons mt-4 hidden flex-wrap gap-2">
+                    <button class="toggle-answer-btn-local bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">表示/非表示</button>
+                    <button class="play-sound-btn-local bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">音声再生</button>
+                    <button class="play-slow-btn-local bg-teal-500 hover:bg-teal-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">ゆっくり</button>
+                    <button class="record-btn-local bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">録音評価</button>
+                    <button class="toggle-explanation-btn-local bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">語の意味</button>
+                    <button class="toggle-master-btn-local bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">⭐ マスター</button>
+                </div>
+
+                <div class="explanation mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 text-gray-700 rounded-r-lg" style="display: none;">
+                ${item.explanation}
+                </div>
+            </div>
+        </div>
+        `;
+                sentenceList.appendChild(sentenceDiv);
+            });
+
+            document.querySelectorAll('.sentence-item .flex-1').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if(e.target.tagName === 'BUTTON') return;
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    if (activeSentenceElement && activeSentenceElement !== sentenceWrapper) {
+                        activeSentenceElement.classList.remove('ring-2', 'ring-blue-400', 'shadow-xl');
+                        activeSentenceElement.querySelector('.action-buttons').classList.add('hidden');
+                        activeSentenceElement.querySelector('.action-buttons').classList.remove('flex');
+                    }
+                    activeSentenceElement = sentenceWrapper;
+                    activeSentenceElement.classList.add('ring-2', 'ring-blue-400', 'shadow-xl');
+                    activeSentenceElement.querySelector('.action-buttons').classList.remove('hidden');
+                    activeSentenceElement.querySelector('.action-buttons').classList.add('flex');
+                });
+                
+                item.querySelector('.toggle-answer-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    sentenceWrapper.classList.toggle('show-answer');
+                });
+                
+                item.querySelector('.play-sound-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playSound(1.0);
+                });
+                
+                item.querySelector('.play-slow-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playSound(0.8);
+                });
+                
+                item.querySelector('.record-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleRecording();
+                });
+                
+                item.querySelector('.toggle-explanation-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    const exp = sentenceWrapper.querySelector('.explanation');
+                    if (exp) exp.style.display = exp.style.display === 'block' ? 'none' : 'block';
+                });
+
+                item.querySelector('.toggle-master-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    const wordId = sentenceWrapper.dataset.id;
+                    const isMastered = sentenceWrapper.classList.contains('word-mastered');
+                    if (window.toggleWordMasterState) {
+                        window.toggleWordMasterState(wordId, !isMastered);
+                    } else {
+                        sentenceWrapper.classList.toggle('word-mastered');
+                        e.currentTarget.innerText = sentenceWrapper.classList.contains('word-mastered') ? "⭐ マスター解除" : "⭐ マスター";
+                    }
+                });
+            });
+
+            document.querySelectorAll('.sentence-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (e.target.checked) selectedSentences.add(e.target.dataset.id);
+                    else selectedSentences.delete(e.target.dataset.id);
+                });
+            });
+
+            if (sentenceList.firstChild) sentenceList.firstChild.querySelector('.flex-1').click();
+        }
+
+        function showMessage(htmlContent, duration = null) {
+            messageContent.innerHTML = htmlContent;
+            messageModal.classList.remove('hidden');
+            if (duration) setTimeout(() => messageModal.classList.add('hidden'), duration);
+        }
+
+        function playSound(speed = 1.0) {
+            if (!activeSentenceElement) return;
+            const text = activeSentenceElement.dataset.fullSentence;
+            if (!text) return;
+
+            try {
+                speechSynthesis.cancel();
+            } catch (e) {}
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = speed;
+
+            const voices = speechSynthesis.getVoices();
+            const bestVoice = getBestEnglishVoice(voices);
+            if (bestVoice) {
+                utterance.voice = bestVoice;
+                utterance.lang = bestVoice.lang;
+            } else {
+                console.warn("No custom English voice found, using browser default.");
+            }
+
+            utterance.onerror = (e) => {
+                console.error("SpeechSynthesis error:", e.error);
+            };
+
+            speechSynthesis.speak(utterance);
+        }
+
+        function handleRecording() {
+            if (!activeSentenceElement) return;
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showMessage('<p>お使いのブラウザは音声認識に対応していません。</p>', 3000);
+                return;
+            }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.onstart = () => showMessage('<p class="text-2xl">マイクに向かって話してください...</p><div class="animate-pulse text-red-500 text-4xl mt-4">●</div>');
+            recognition.onresult = (event) => evaluatePronunciation(event.results[0][0].transcript);
+            recognition.onerror = () => showMessage('<p>認識エラーが発生しました。</p>', 2000);
+            recognition.start();
+        }
+
+        function evaluatePronunciation(transcript) {
+            const original = activeSentenceElement.dataset.fullSentence.toLowerCase().replace(/[^\w\s]/g, '');
+            const user = transcript.toLowerCase().replace(/[^\w\s]/g, '');
+            const score = Math.min(100, Math.floor((user.split(' ').filter(w => original.includes(w)).length / original.split(' ').length) * 100) + 15);
+
+            if (score >= 80) {
+                const wordId = activeSentenceElement.dataset.id;
+                if (window.toggleWordMasterState) {
+                    window.toggleWordMasterState(wordId, true);
+                } else {
+                    const wrapper = document.querySelector(`.sentence-item[data-id="${wordId}"]`);
+                    if (wrapper) {
+                        wrapper.classList.add('word-mastered');
+                        const btn = wrapper.querySelector('.toggle-master-btn-local');
+                        if (btn) btn.innerText = "⭐ マスター解除";
+                    }
+                }
+            }
+
+            if(window.saveLeapScore) window.saveLeapScore('pronunciationScore_' + activeSentenceElement.dataset.id, score);
+            showMessage(`
+                <h3 class="text-2xl font-bold mb-4">評価結果</h3>
+                <p class="text-7xl font-bold text-blue-600 mb-4">${score}<span class="text-2xl">点</span></p>
+                <p class="text-gray-600 mb-2"><strong>認識結果:</strong> ${transcript}</p>
+                <button onclick="document.getElementById('message-modal').classList.add('hidden')" class="mt-6 bg-blue-500 text-white py-2 px-6 rounded-lg">閉じる</button>
+            `);
+        }
+
+        function startQuiz() {
+            const questions = [...chapterData].sort(() => 0.5 - Math.random()).slice(0, 10);
+            let currentIdx = 0, score = 0;
+
+            function extractBlankWord(item) {
+                const formatted = formatEnglishSentence(item);
+                const match = formatted.match(/<span class="answer-span">([\s\S]*?)<\/span>/);
+                return match ? match[1].trim() : item.answer;
+            }
+
+            function nextQuestion() {
+                if (currentIdx >= questions.length) {
+                    const finalScore = Math.round(score / questions.length * 100);
+                    if (window.saveLeapScore) {
+                        window.saveLeapScore('quizScore', finalScore);
+                    } else {
+                        console.error("Firebase saveLeapScore is not loaded yet.");
+                        alert("データベース連携が初期化されていません。ネットワーク接続が正常か、または広告ブロック/セキュリティ拡張機能により連携スクリプトの読込がブロックされていないかご確認ください。");
+                    }
+                    quizContent.innerHTML = `<h3 class="text-3xl font-bold mb-4">結果: ${score}/${questions.length}</h3><p class="text-6xl text-purple-600 font-bold">${finalScore}点</p>`;
+                    return;
+                }
+                const q = questions[currentIdx];
+                const correctWord = extractBlankWord(q);
+                
+                const formattedQ = formatEnglishSentence(q);
+                let displaySentence = formattedQ.replace(/<span class="answer-span">[\s\S]*?<\/span><span class="underline-span">__________<\/span>/g, '__________');
+                if (displaySentence === q.en && q.en) {
+                    displaySentence = q.en;
+                } else if (!q.en) {
+                    displaySentence = "(例文なし)";
+                }
+
+                const allOtherWords = chapterData.filter(d => d.id !== q.id).map(d => extractBlankWord(d));
+                const uniqueOtherWords = [...new Set(allOtherWords)].filter(w => w !== correctWord);
+                const distractors = uniqueOtherWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+                
+                const options = [correctWord, ...distractors].sort(() => 0.5 - Math.random());
+
+                quizContent.innerHTML = `
+                    <p class="mb-2 text-gray-500">問題 ${currentIdx + 1}/10</p>
+                    <p class="text-lg font-bold mb-2 text-gray-700">${q.ja}</p>
+                    <p class="text-xl font-bold mb-6 font-english text-blue-800">${displaySentence}</p>
+                    <div class="grid grid-cols-1 gap-3">
+                        ${options.map(opt => `<button class="quiz-opt p-3 border-2 border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 font-english transition-colors">${opt}</button>`).join('')}
+                    </div>
+                `;
+                document.querySelectorAll('.quiz-opt').forEach(btn => {
+                    btn.onclick = () => {
+                        if (btn.innerText === correctWord) { btn.classList.add('bg-green-200', 'border-green-400'); score++; }
+                        else { btn.classList.add('bg-red-200', 'border-red-400'); }
+                        
+                        document.querySelectorAll('.quiz-opt').forEach(b => b.disabled = true);
+                        
+                        // 3 seconds timeout to verify answer details
+                        setTimeout(() => { currentIdx++; nextQuestion(); }, 3000);
+                    };
+                });
+            }
+            quizModal.classList.remove('hidden');
+            nextQuestion();
+        }
+
+        // --- PDF Print Logic ---
+        function openPrintWindow(content, title) {
+            const win = window.open('', '_blank');
+            win.document.write(`<html><head><title>${title}</title><style>body{font-family:sans-serif;padding:40px} .list{column-count:2} li{margin-bottom:10px} .ans{margin-top:50px;border-top:1px solid #000;padding-top:20px}</style></head><body><h1>${title}</h1>${content}</body></html>`);
+            win.document.close();
+            setTimeout(() => { win.focus(); win.print(); }, 500);
+        }
+
+        function getSelected() {
+            return Array.from(selectedSentences).map(id => chapterData.find(d => d.id == id)).sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+        }
+
+        startQuizBtn.onclick = startQuiz;
+        closeQuizBtn.onclick = () => quizModal.classList.add('hidden');
+        openPdfModalBtn.onclick = () => selectedSentences.size ? pdfModal.classList.remove('hidden') : showMessage('問題を選択してください', 2000);
+        closeModalBtn.onclick = () => pdfModal.classList.add('hidden');
+        selectAllCheckbox.onchange = (e) => {
+            document.querySelectorAll('.sentence-checkbox').forEach(cb => {
+                cb.checked = e.target.checked;
+                if (e.target.checked) selectedSentences.add(cb.dataset.id);
+                else selectedSentences.delete(cb.dataset.id);
+            });
+        };
+
+        document.getElementById('download-list-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => `<li><strong>${i.answer}</strong>: ${i.explanation}</li>`).join('')}</ul></div>`;
+            openPrintWindow(html, '重要語句リスト');
+        };
+
+        document.getElementById('download-sentence-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<ol>${items.map(i => {
+                if (!i.en) return `<li>（例文なし: ${i.answer}）</li>`;
+                let displaySentence = formatEnglishSentence(i).replace(/<span class="answer-span">[\s\S]*?<\/span><span class="underline-span">__________<\/span>/g, '__________');
+                return `<li>${displaySentence}<br><small>${i.ja}</small></li>`;
+            }).join('')}</ol><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer).join(', ')}</p></div>`;
+            openPrintWindow(html, '例文穴埋めテスト');
+        };
+
+        document.getElementById('download-en-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => `<li>[日本語]: ${i.ja}<br>[英語]: __________</li>`).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer).join(', ')}</p></div>`;
+            openPrintWindow(html, '英単語テスト');
+        };
+
+        document.getElementById('download-ja-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.explanation.split('\n')[0]).join('<br>')}</p></div>`;
+            openPrintWindow(html, '意味テスト');
+        };
+
+        document.getElementById('download-mixed-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<div class="list"><ul>${items.map(i => {
+                return Math.random() > 0.5
+                    ? `<li>[日本語]: ${i.ja}<br>[英語]: __________</li>`
+                    : `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`;
+            }).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer + ' / ' + i.explanation).join('<br>')}</p></div>`;
+            openPrintWindow(html, '英単語・意味混合テスト');
+        };
+
+        document.getElementById('download-sentence-mixed-quiz-btn').onclick = () => {
+            const items = getSelected();
+            const html = `<ol>${items.map(i => {
+                if (!i.en) {
+                    return `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`;
+                }
+                if (Math.random() > 0.5) {
+                    let displaySentence = formatEnglishSentence(i).replace(/<span class="answer-span">[\s\S]*?<\/span><span class="underline-span">__________<\/span>/g, '__________');
+                    return `<li>${displaySentence}<br><small>${i.ja}</small></li>`;
+                } else {
+                    return `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`;
+                }
+            }).join('')}</ol><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer + ' / ' + i.explanation.split('\n')[0]).join('<br>')}</p></div>`;
+            openPrintWindow(html, 'ランダム混合テスト');
+        };
+
+        document.addEventListener('DOMContentLoaded', renderChapter);
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCNrvDMnlN_geijgRguQrolnTIZ_rdZwyw",
+            authDomain: "sokudoku-stories-db.firebaseapp.com",
+            projectId: "sokudoku-stories-db",
+            storageBucket: "sokudoku-stories-db.firebasestorage.app",
+            messagingSenderId: "979353290932",
+            appId: "1:979353290932:web:f0c512cfbe64a7afe36fe1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Prefix page ID with 'revision_' to isolate LEAP Revision data from LEAP Basic
+        const pageId = window.location.pathname.split('/').pop().replace('.html', '');
+        const appId = "revision_" + pageId;
+
+        window.localMasteredWords = {};
+
+        window.applyLoadedMasteredWords = (masteredWords) => {
+            window.localMasteredWords = masteredWords || {};
+            document.querySelectorAll('.sentence-item').forEach(wrapper => {
+                const wordId = wrapper.dataset.id;
+                const btn = wrapper.querySelector('.toggle-master-btn-local');
+                if (window.localMasteredWords[wordId] === true) {
+                    wrapper.classList.add('word-mastered');
+                    if(btn) btn.innerText = "⭐ マスター解除";
+                } else {
+                    wrapper.classList.remove('word-mastered');
+                    if(btn) btn.innerText = "⭐ マスター";
+                }
+            });
+        };
+
+        window.toggleWordMasterState = (wordId, makeMastered) => {
+            if (window.currentUser) {
+                const docRef = doc(db, "leap_users", window.currentUser.uid, "progress", appId);
+                window.localMasteredWords[wordId] = makeMastered;
+                
+                const updateData = {
+                    masteredWords: {
+                        [wordId]: makeMastered
+                    }
+                };
+                
+                setDoc(docRef, updateData, { merge: true })
+                .then(() => {
+                    console.log(`Word ${wordId} master state:`, makeMastered);
+                    window.applyLoadedMasteredWords(window.localMasteredWords);
+                })
+                .catch(e => {
+                    console.error("Error updating word master:", e);
+                    alert("マスター状態の保存に失敗しました: " + e.message);
+                });
+            } else {
+                window.localMasteredWords[wordId] = makeMastered;
+                window.applyLoadedMasteredWords(window.localMasteredWords);
+                console.warn("Saving locally only.");
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.currentUser = user;
+                console.log("Firebase Authenticated as:", user.email);
+                const docRef = doc(db, "leap_users", user.uid, "progress", appId);
+                
+                getDoc(docRef).then((docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        window.applyLoadedMasteredWords(data.masteredWords);
+                    }
+                }).catch(e => console.error("Error loading mastered words:", e));
+
+                setDoc(docRef, {
+                    started: true,
+                    lastAccessed: new Date().toISOString()
+                }, { merge: true }).then(() => {
+                    console.log("Progress started state saved successfully.");
+                }).catch(e => {
+                    console.error("Progress save error:", e);
+                    alert("進捗の自動保存に失敗しました: " + e.message);
+                });
+                
+                setDoc(doc(db, "leap_users", user.uid), {
+                    displayName: user.displayName,
+                    email: user.email,
+                    photoURL: user.photoURL,
+                    lastLogin: new Date().toISOString()
+                }, { merge: true }).catch(e => console.error("User profile save error:", e));
+            } else {
+                console.warn("No user session active on this page.");
+            }
+        });
+
+        window.saveLeapScore = (type, score) => {
+            if (window.currentUser) {
+                const docRef = doc(db, "leap_users", window.currentUser.uid, "progress", appId);
+                const updateData = {};
+                updateData[type] = score;
+                setDoc(docRef, updateData, { merge: true })
+                .then(() => {
+                    console.log("Score saved successfully:", type, score);
+                })
+                .catch(e => {
+                    console.error("Score save error:", e);
+                    alert("テスト結果の保存に失敗しました: " + e.message);
+                });
+            } else {
+                console.error("Score save failed: No user is logged in.");
+                alert("ログイン状態が確認できないため、テスト結果を保存できませんでした。ダッシュボードから再度ログインしてください。");
+            }
+        };
+    </script>
+</body>
+
+</html>
