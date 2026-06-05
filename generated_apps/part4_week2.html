@@ -91,6 +91,19 @@
                 font-size: 0.8rem;
             }
         }
+
+        /* マスターカードのスタイル */
+        .sentence-item.word-mastered {
+            border-color: #f59e0b !important;
+            background-color: #fef3c7 !important;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+        }
+        .sentence-item.word-mastered .toggle-master-btn-local {
+            background-color: #f59e0b !important;
+        }
+        .sentence-item.word-mastered .toggle-master-btn-local:hover {
+            background-color: #d97706 !important;
+        }
     </style>
 </head>
 
@@ -710,6 +723,7 @@
                     <button class="play-slow-btn-local bg-teal-500 hover:bg-teal-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">ゆっくり</button>
                     <button class="record-btn-local bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">録音評価</button>
                     <button class="toggle-explanation-btn-local bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">語の意味</button>
+                    <button class="toggle-master-btn-local bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded shadow-md text-sm">⭐ マスター</button>
                 </div>
 
                 <div class="explanation mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 text-gray-700 rounded-r-lg" style="display: none;">
@@ -763,6 +777,20 @@
                     const sentenceWrapper = e.currentTarget.closest('.sentence-item');
                     const exp = sentenceWrapper.querySelector('.explanation');
                     if (exp) exp.style.display = exp.style.display === 'block' ? 'none' : 'block';
+                });
+
+                item.querySelector('.toggle-master-btn-local').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+                    const wordId = sentenceWrapper.dataset.id;
+                    const isMastered = sentenceWrapper.classList.contains('word-mastered');
+                    if (window.toggleWordMasterState) {
+                        window.toggleWordMasterState(wordId, !isMastered);
+                    } else {
+                        // Fallback local toggle
+                        sentenceWrapper.classList.toggle('word-mastered');
+                        e.currentTarget.innerText = sentenceWrapper.classList.contains('word-mastered') ? "⭐ マスター解除" : "⭐ マスター";
+                    }
                 });
             });
 
@@ -833,6 +861,21 @@
             const original = activeSentenceElement.dataset.fullSentence.toLowerCase().replace(/[^\w\s]/g, '');
             const user = transcript.toLowerCase().replace(/[^\w\s]/g, '');
             const score = Math.min(100, Math.floor((user.split(' ').filter(w => original.includes(w)).length / original.split(' ').length) * 100) + 15);
+
+            // 80点以上の場合は自動的にマスター状態にする
+            if (score >= 80) {
+                const wordId = activeSentenceElement.dataset.id;
+                if (window.toggleWordMasterState) {
+                    window.toggleWordMasterState(wordId, true);
+                } else {
+                    const wrapper = document.querySelector(`.sentence-item[data-id="${wordId}"]`);
+                    if (wrapper) {
+                        wrapper.classList.add('word-mastered');
+                        const btn = wrapper.querySelector('.toggle-master-btn-local');
+                        if (btn) btn.innerText = "⭐ マスター解除";
+                    }
+                }
+            }
 
             if(window.saveLeapScore) window.saveLeapScore('pronunciationScore_' + activeSentenceElement.dataset.id, score);
             showMessage(`
@@ -1079,7 +1122,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCNrvDMnlN_geijgRguQrolnTIZ_rdZwyw",
@@ -1096,11 +1139,63 @@
 
         const appId = window.location.pathname.split('/').pop().replace('.html', '');
 
+        window.localMasteredWords = {};
+
+        // ロード時にマスターデータを反映する
+        window.applyLoadedMasteredWords = (masteredWords) => {
+            window.localMasteredWords = masteredWords || {};
+            document.querySelectorAll('.sentence-item').forEach(wrapper => {
+                const wordId = wrapper.dataset.id;
+                const btn = wrapper.querySelector('.toggle-master-btn-local');
+                if (window.localMasteredWords[wordId] === true) {
+                    wrapper.classList.add('word-mastered');
+                    if(btn) btn.innerText = "⭐ マスター解除";
+                } else {
+                    wrapper.classList.remove('word-mastered');
+                    if(btn) btn.innerText = "⭐ マスター";
+                }
+            });
+        };
+
+        // Firebaseにトグル状態を保存する
+        window.toggleWordMasterState = (wordId, makeMastered) => {
+            if (window.currentUser) {
+                const docRef = doc(db, "leap_users", window.currentUser.uid, "progress", appId);
+                window.localMasteredWords[wordId] = makeMastered;
+                
+                const updateData = {};
+                updateData[`masteredWords.${wordId}`] = makeMastered; // ドット表記でネストされたオブジェクトを部分更新
+                
+                setDoc(docRef, updateData, { merge: true })
+                .then(() => {
+                    console.log(`Word ${wordId} master state:`, makeMastered);
+                    window.applyLoadedMasteredWords(window.localMasteredWords);
+                })
+                .catch(e => {
+                    console.error("Error updating word master:", e);
+                    alert("マスター状態の保存に失敗しました: " + e.message);
+                });
+            } else {
+                window.localMasteredWords[wordId] = makeMastered;
+                window.applyLoadedMasteredWords(window.localMasteredWords);
+                console.warn("Saving locally only.");
+            }
+        };
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 window.currentUser = user;
                 console.log("Firebase Authenticated as:", user.email);
                 const docRef = doc(db, "leap_users", user.uid, "progress", appId);
+                
+                // Firestoreからマスター済み単語データをロード
+                getDoc(docRef).then((docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        window.applyLoadedMasteredWords(data.masteredWords);
+                    }
+                }).catch(e => console.error("Error loading mastered words:", e));
+
                 setDoc(docRef, {
                     started: true,
                     lastAccessed: new Date().toISOString()

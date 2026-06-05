@@ -245,7 +245,7 @@ firebase_script = """
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCNrvDMnlN_geijgRguQrolnTIZ_rdZwyw",
@@ -262,11 +262,63 @@ firebase_script = """
 
         const appId = window.location.pathname.split('/').pop().replace('.html', '');
 
+        window.localMasteredWords = {};
+
+        // ロード時にマスターデータを反映する
+        window.applyLoadedMasteredWords = (masteredWords) => {
+            window.localMasteredWords = masteredWords || {};
+            document.querySelectorAll('.sentence-item').forEach(wrapper => {
+                const wordId = wrapper.dataset.id;
+                const btn = wrapper.querySelector('.toggle-master-btn-local');
+                if (window.localMasteredWords[wordId] === true) {
+                    wrapper.classList.add('word-mastered');
+                    if(btn) btn.innerText = "⭐ マスター解除";
+                } else {
+                    wrapper.classList.remove('word-mastered');
+                    if(btn) btn.innerText = "⭐ マスター";
+                }
+            });
+        };
+
+        // Firebaseにトグル状態を保存する
+        window.toggleWordMasterState = (wordId, makeMastered) => {
+            if (window.currentUser) {
+                const docRef = doc(db, "leap_users", window.currentUser.uid, "progress", appId);
+                window.localMasteredWords[wordId] = makeMastered;
+                
+                const updateData = {};
+                updateData[`masteredWords.${wordId}`] = makeMastered; // ドット表記でネストされたオブジェクトを部分更新
+                
+                setDoc(docRef, updateData, { merge: true })
+                .then(() => {
+                    console.log(`Word ${wordId} master state:`, makeMastered);
+                    window.applyLoadedMasteredWords(window.localMasteredWords);
+                })
+                .catch(e => {
+                    console.error("Error updating word master:", e);
+                    alert("マスター状態の保存に失敗しました: " + e.message);
+                });
+            } else {
+                window.localMasteredWords[wordId] = makeMastered;
+                window.applyLoadedMasteredWords(window.localMasteredWords);
+                console.warn("Saving locally only.");
+            }
+        };
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 window.currentUser = user;
                 console.log("Firebase Authenticated as:", user.email);
                 const docRef = doc(db, "leap_users", user.uid, "progress", appId);
+                
+                // Firestoreからマスター済み単語データをロード
+                getDoc(docRef).then((docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        window.applyLoadedMasteredWords(data.masteredWords);
+                    }
+                }).catch(e => console.error("Error loading mastered words:", e));
+
                 setDoc(docRef, {
                     started: true,
                     lastAccessed: new Date().toISOString()
@@ -399,5 +451,31 @@ for sheet in sheets_to_process:
         json_data = json.dumps(chapter_data, ensure_ascii=False, indent=4)
         with open(os.path.join(output_dir, file_name), "w", encoding="utf-8") as f:
             f.write(html_content + json_data + part2_html)
+
+        apps_info.append({
+            "title": title,
+            "subtitle": subtitle,
+            "file_name": file_name,
+            "part": part_display,
+            "week": week_display,
+            "word_count": len(chapter_data)
+        })
+
+# Update index.html dynamically with the collected apps_info
+index_html_path = os.path.join(output_dir, "index.html")
+if os.path.exists(index_html_path):
+    with open(index_html_path, "r", encoding="utf-8") as f:
+        index_content = f.read()
+    
+    apps_info_json = json.dumps(apps_info, ensure_ascii=False)
+    index_content = re.sub(
+        r'const appsInfo = \[.*?\];',
+        f'const appsInfo = {apps_info_json};',
+        index_content,
+        flags=re.DOTALL
+    )
+    
+    with open(index_html_path, "w", encoding="utf-8") as f:
+        f.write(index_content)
             
 print("Success")
