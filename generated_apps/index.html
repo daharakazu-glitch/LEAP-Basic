@@ -83,7 +83,7 @@
                     
                     const data = progressData[appId];
                     if (data) {
-                        if (data.quizScore === 100) {
+                        if (data.quizScore && Number(data.quizScore) === 100) {
                             link.classList.add('mastered');
                             link.innerHTML += '<br><span class="status-badge-mastered">👑 マスター</span>';
                         } else if (data.started) {
@@ -118,7 +118,7 @@
                     snap.forEach(doc => {
                         const data = doc.data();
                         progressData[doc.id] = data;
-                        if (data.quizScore === 100) {
+                        if (data.quizScore && Number(data.quizScore) === 100) {
                             masteredCount++;
                         } else if (data.started) {
                             startedCount++;

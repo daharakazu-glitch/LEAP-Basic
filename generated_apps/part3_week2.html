@@ -1245,18 +1245,26 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 window.currentUser = user;
+                console.log("Firebase Authenticated as:", user.email);
                 const docRef = doc(db, "leap_users", user.uid, "progress", appId);
                 setDoc(docRef, {
                     started: true,
                     lastAccessed: new Date().toISOString()
-                }, { merge: true }).catch(console.error);
+                }, { merge: true }).then(() => {
+                    console.log("Progress started state saved successfully.");
+                }).catch(e => {
+                    console.error("Progress save error:", e);
+                    alert("進捗の自動保存に失敗しました: " + e.message);
+                });
                 
                 setDoc(doc(db, "leap_users", user.uid), {
                     displayName: user.displayName,
                     email: user.email,
                     photoURL: user.photoURL,
                     lastLogin: new Date().toISOString()
-                }, { merge: true }).catch(e => console.error(e));
+                }, { merge: true }).catch(e => console.error("User profile save error:", e));
+            } else {
+                console.warn("No user session active on this page.");
             }
         });
 
@@ -1265,7 +1273,17 @@
                 const docRef = doc(db, "leap_users", window.currentUser.uid, "progress", appId);
                 const updateData = {};
                 updateData[type] = score;
-                setDoc(docRef, updateData, { merge: true }).catch(console.error);
+                setDoc(docRef, updateData, { merge: true })
+                .then(() => {
+                    console.log("Score saved successfully:", type, score);
+                })
+                .catch(e => {
+                    console.error("Score save error:", e);
+                    alert("テスト結果の保存に失敗しました: " + e.message);
+                });
+            } else {
+                console.error("Score save failed: No user is logged in.");
+                alert("ログイン状態が確認できないため、テスト結果を保存できませんでした。ダッシュボードから再度ログインしてください。");
             }
         };
     </script>
