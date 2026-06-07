@@ -319,7 +319,17 @@ firebase_script = """
                 getDoc(docRef).then((docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        window.applyLoadedMasteredWords(data.masteredWords);
+                        let mastered = data.masteredWords;
+                        if (!mastered) {
+                            mastered = {};
+                            Object.keys(data).forEach(key => {
+                                if (key.startsWith('masteredWords.')) {
+                                    const wordId = key.replace('masteredWords.', '');
+                                    mastered[wordId] = data[key];
+                                }
+                            });
+                        }
+                        window.applyLoadedMasteredWords(mastered);
                     }
                 }).catch(e => console.error("Error loading mastered words:", e));
 

@@ -1046,6 +1046,9 @@
             });
 
             if (sentenceList.firstChild) sentenceList.firstChild.querySelector('.flex-1').click();
+            if (window.applyLoadedMasteredWords) {
+                window.applyLoadedMasteredWords(window.localMasteredWords);
+            }
         }
 
         function showMessage(htmlContent, duration = null) {
