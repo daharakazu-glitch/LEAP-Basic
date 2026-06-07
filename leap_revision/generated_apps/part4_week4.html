@@ -1814,9 +1814,13 @@
                 const docRef = doc(db, "leap_users", user.uid, "progress", appId);
                 
                 getDoc(docRef).then((docSnap) => {
+                    let mastered = {};
+                    let alreadyStarted = false;
+                    
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        let mastered = data.masteredWords;
+                        alreadyStarted = data.started || false;
+                        mastered = data.masteredWords;
                         if (!mastered) {
                             mastered = {};
                             Object.keys(data).forEach(key => {
@@ -1826,18 +1830,24 @@
                                 }
                             });
                         }
-                        window.applyLoadedMasteredWords(mastered);
                     }
-                }).catch(e => console.error("Error loading mastered words:", e));
-
-                setDoc(docRef, {
-                    started: true,
-                    lastAccessed: new Date().toISOString()
-                }, { merge: true }).then(() => {
-                    console.log("Progress started state saved successfully.");
+                    
+                    window.applyLoadedMasteredWords(mastered);
+                    
+                    // started状態が未保存の場合のみ保存する（書き込みの競合を防ぐ）
+                    if (!alreadyStarted) {
+                        setDoc(docRef, {
+                            started: true,
+                            lastAccessed: new Date().toISOString()
+                        }, { merge: true }).then(() => {
+                            console.log("Progress started state saved successfully.");
+                        }).catch(e => {
+                            console.error("Progress save error:", e);
+                        });
+                    }
                 }).catch(e => {
-                    console.error("Progress save error:", e);
-                    alert("進捗の自動保存に失敗しました: " + e.message);
+                    console.error("Error loading mastered words:", e);
+                    window.applyLoadedMasteredWords(window.localMasteredWords || {});
                 });
                 
                 setDoc(doc(db, "leap_users", user.uid), {
